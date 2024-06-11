@@ -2,6 +2,7 @@
 from PySide6.QtWidgets import QApplication
 import sys
 from class_buttonHolder import ButtonHolder
+
 if __name__ == "__main__":
   app = QApplication(sys.argv)
   window = ButtonHolder()
