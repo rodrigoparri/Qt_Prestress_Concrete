@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from math import exp, log
 """
 ---------UNITS--------------------
 length: mm
@@ -42,7 +43,6 @@ class ConcreteSection(Section):
     DEFAULT_fck = 25
     DEFAULT_fyk = 500
     DEFAULT_fpk = 1860
-    DEFAULT_Ecm = 31
     DEFAULT_Es = 21E4
     DEFAULT_Ep = 195E3
     DEFAULT_gc = 1.5
@@ -62,7 +62,7 @@ class ConcreteSection(Section):
         self.fck = kwargs.get('fck')
         self.fyk = kwargs.get('fyk')
         self.fpk = kwargs.get('fpk')
-        self.Ecm = kwargs.get('Ecm')
+        self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3)
         self.Es = kwargs.get('Es') #210,000Mpa
         self.Ep = kwargs.get('Ep') #195,000Mpa
         self.ns = self.Ecm / self.Es
@@ -88,7 +88,8 @@ class ConcreteSection(Section):
         self.dp = kwargs.get('dp')
         self.dc = self.ycentroid()
 
-        #
+        #LOADS
+
 
     @abstractmethod
     def hmgSection(self):
@@ -104,6 +105,43 @@ class ConcreteSection(Section):
         :param P: effective pretension force (after short-term losses)
         """
         pass
+
+    @staticmethod
+    def Bcc(t, s):
+        """time dependent scalar that reduces concrete strength for a time t
+        between 3 and 28 days
+        :param t: time 0-28 days
+        :param s: cement type 0.20, 0.25, 0.38
+        """
+        return exp(s * (1 - pow(28 / t, 0.5)))
+
+    def fcm(self):
+        """ average concrete compression strength"""
+        return self.fck + 8
+
+    def fcmt(self, t, s):
+        """time dependent average concrete compression strength"""
+        return ConcreteSection.Bcc(t, s) * self.fcm()
+
+
+    def fctm(self):
+        """average concrete tensile strength"""
+        return (self.fck <= 50) * (0.30 * pow(self.fck, 0.66)) + (self.fck > 50) \
+    * (2,12 * log(1 + self.fcm() * 0.1))
+
+    def fctmt(self, t, s):
+        """average time dependent concrete tensile strength"""
+        return ConcreteSection.Bcc(t, s) * self.fctm()
+    def fckt(self, t, s):
+        """time dependent concrete characteristic compression strength. t in days
+        """
+        return ConcreteSection.Bcc(t, s) * self.fck
+
+    def Ecmt(self, t, s):
+        """time dependent secant concrete elastic modulus"""
+        return pow(self.fcmt(t, s) / self.fcm(), 0.3) * self.Ecm
+
+
 
 class RectConcSect(ConcreteSection):
     """
@@ -130,7 +168,6 @@ class RectConcSect(ConcreteSection):
             fck=kwargs.get('fck', ConcreteSection.DEFAULT_fck),
             fyk=kwargs.get('fyk', ConcreteSection.DEFAULT_fyk),
             fpk=kwargs.get('fpk', ConcreteSection.DEFAULT_fpk),
-            Ecm=kwargs.get('Ecm', ConcreteSection.DEFAULT_Ecm),
             Es=kwargs.get('Es', ConcreteSection.DEFAULT_Es),
             Ep=kwargs.get('Ep', ConcreteSection.DEFAULT_Ep),
             gc=kwargs.get('gc', ConcreteSection.DEFAULT_gc),
@@ -188,6 +225,7 @@ class RectConcSect(ConcreteSection):
 
     def magnelTensionLimit(self, **kwargs):
 
+        pass
 
 if __name__ == "__main__":
     defaultConcBeam = RectConcSect()
