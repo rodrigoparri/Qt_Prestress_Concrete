@@ -6,7 +6,7 @@ length: mm
 force: N
 stress: N/mm
 ---------ORIGING-----------------
-beam origin is defined in the top right corner
+section origin is defined in the top right corner
 """
 
 
@@ -18,25 +18,33 @@ class Section(ABC):
 
     @abstractmethod
     def xcentroid(self):
-        """x position of the section's centroid"""
+        """x position of the section's centroid from the left side"""
         pass
 
     @abstractmethod
     def ycentroid(self):
-        """y position of the section's centroid"""
+        """y position of the section's centroid from the top fibre"""
         pass
 
     @abstractmethod
-    def bruteIx(self):
-        """Moment of inertia from x-axis through the section's centroid"""
+    def Ix0(self):
+        """Moment of inertia from the x-axis through the origin"""
         pass
 
     @abstractmethod
-    def steinerIx(self, d):
+    def Ix(self, d):
         """Moment of inertia af the original section (considered concrete-massive)
         from an arbitrary axis parallel to the x-axis
         d: distance from x-axis through the section's centroid"""
         pass
+
+    def Wx(self, h):
+        """elastic section modulus considering the inertia from the centroid to the
+        top fibre.
+        :param h: distance from centroid to the top or bottom fibre
+        """
+        return self.Ix0() / h
+
 
 class ConcreteSection(Section):
 
@@ -56,6 +64,8 @@ class ConcreteSection(Section):
     DEFAULT_ds1 = 50
     DEFAULT_ds2 = DEFAULT_h - DEFAULT_ds1
     DEFAULT_dp = DEFAULT_h - 150
+    DEFAULT_N = 0
+    DEFAULT_M = 0
 
     def __init__(self, **kwargs):
         #MATERIAL
@@ -65,8 +75,8 @@ class ConcreteSection(Section):
         self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3)
         self.Es = kwargs.get('Es') #210,000Mpa
         self.Ep = kwargs.get('Ep') #195,000Mpa
-        self.ns = self.Ecm / self.Es
-        self.np = self.Ecm / self.Ep
+        self.ns = self.Es / self.Ecm
+        self.np = self.Ep / self.Ecm
 
         #MATERIAL COEFFICIENTS
         self.gc = kwargs.get('gc')
@@ -81,6 +91,8 @@ class ConcreteSection(Section):
         #DIMENSIONS
         self.b = kwargs.get('b')
         self.h = kwargs.get('h')
+        self.h1 = 0
+        self.h2 = 0
 
         #REINFORCEMENT POSITIONS
         self.ds1 = kwargs.get('ds1')
@@ -89,7 +101,8 @@ class ConcreteSection(Section):
         self.dc = self.ycentroid()
 
         #LOADS
-
+        self.N = kwargs.get('N')
+        self.M = kwargs.get('M')
 
     @abstractmethod
     def hmgSection(self):
@@ -98,11 +111,15 @@ class ConcreteSection(Section):
         pass
 
     @abstractmethod
-    def magnelTensionLimit(self, **kwargs):
+    def magnelTensionLimit(self, P, Mi, Mf, t, s):
         """
         checks if a section meets tension limits according to magnel diagrams.
         this is a short-term check.
         :param P: effective pretension force (after short-term losses)
+        :param Mi: initial moment (at the instant of prestress)
+        :param Mf: complete moment under service loads
+        :param t: time of prestress in days from concrete pouring
+        :param s: cement type
         """
         pass
 
@@ -123,7 +140,6 @@ class ConcreteSection(Section):
         """time dependent average concrete compression strength"""
         return ConcreteSection.Bcc(t, s) * self.fcm()
 
-
     def fctm(self):
         """average concrete tensile strength"""
         return (self.fck <= 50) * (0.30 * pow(self.fck, 0.66)) + (self.fck > 50) \
@@ -141,29 +157,34 @@ class ConcreteSection(Section):
         """time dependent secant concrete elastic modulus"""
         return pow(self.fcmt(t, s) / self.fcm(), 0.3) * self.Ecm
 
-
+    def e(self):
+        """distance from the centroid to the pre-tensioned steel centroid"""
+        return self.dp - self.ycentroid()
 
 class RectConcSect(ConcreteSection):
-    """
-        fck: concrete characteristic strength
-        fyk: steel characteristic strength
-        fpk: pre-tensioned steel characteristic strength
-        Ecm: secant elastic modulus
-        Es: reinforcement steel elastic modulus
-        Ep: pre-tensioned steel elastic modulus
-        gc: concrete strength reduction coefficient
-        gs: passive steel strength reduction coefficient
-        gp: active steel strength reduction coefficient
-        As1: top steel reinforcement area
-        As2: bottom steel reinforcement area
-        Ap: pre-tensioned steel area
-        b: width
-        h: height
-        ds1: distance from top fibre to As1 centroid
-        ds2: distance from top fibre to As2 centroid
-        dp: distance from top fibre to Ap centroid
-    """
+
     def __init__(self, **kwargs):
+        """
+            :param fck: concrete characteristic strength
+            :param fyk: steel characteristic strength
+            :param fpk: pre-tensioned steel characteristic strength
+            :param Ecm: secant elastic modulus
+            :param Es: reinforcement steel elastic modulus
+            :param Ep: pre-tensioned steel elastic modulus
+            :param gc: concrete strength reduction coefficient
+            :param gs: passive steel strength reduction coefficient
+            :param gp: active steel strength reduction coefficient
+            :param As1: top steel reinforcement area
+            :param As2: bottom steel reinforcement area
+            :param Ap: pre-tensioned steel area
+            :param b: width
+            :param h: height
+            :param ds1: distance from top fibre to As1 centroid
+            :param ds2: distance from top fibre to As2 centroid
+            :param dp: distance from top fibre to Ap centroid
+            :param N: axial load
+            :param M: torque
+        """
         super().__init__(
             fck=kwargs.get('fck', ConcreteSection.DEFAULT_fck),
             fyk=kwargs.get('fyk', ConcreteSection.DEFAULT_fyk),
@@ -180,10 +201,16 @@ class RectConcSect(ConcreteSection):
             h=kwargs.get('h', ConcreteSection.DEFAULT_h),
             ds1=kwargs.get('ds1', ConcreteSection.DEFAULT_ds1),
             ds2=kwargs.get('ds2', ConcreteSection.DEFAULT_ds2),
-            dp=kwargs.get('dp', ConcreteSection.DEFAULT_dp)
-        )
+            dp=kwargs.get('dp', ConcreteSection.DEFAULT_dp),
+            N=kwargs.get('N', ConcreteSection.DEFAULT_N),
+            M=kwargs.get('M', ConcreteSection.DEFAULT_M)
 
-    def bruteArea(self):
+        )
+        self.h1 = self.h / 2
+        self.h2 = self.h1
+        pass
+
+    def bruteArea(self) -> float():
         return self.b * self.h
 
     def xcentroid(self):
@@ -192,11 +219,11 @@ class RectConcSect(ConcreteSection):
     def ycentroid(self):
         return self.h / 2
 
-    def bruteIx(self):
+    def Ix0(self):
         return pow(self.h, 3) * self.b / 12
 
-    def steinerIx(self, d):
-        return self.bruteIx() + self.bruteArea() * pow(d, 2)
+    def Ix(self, d):
+        return self.Ix0() + self.bruteArea() * pow(d, 2)
 
     def hmgSection(self):
 
@@ -213,7 +240,7 @@ class RectConcSect(ConcreteSection):
         hmgQcp = hmgAcp * self.dp
         hmgQ = hmgQA + hmgQc1 + hmgQc2 + hmgQcp
 
-        hmgIA = self.steinerIx(self.h/2)
+        hmgIA = self.Ix(self.h1)
         hmgIc1 = hmgQc1 * self.ds1
         hmgIc2 = hmgQc2 * self.ds2
         hmgIcp = hmgQcp * self.dp
@@ -223,11 +250,86 @@ class RectConcSect(ConcreteSection):
         hmg['hmgI'] = hmgI
         return hmg
 
-    def magnelTensionLimit(self, **kwargs):
+    def magnelTensionLimit(self, P, Mi, Mf, t, s) -> bool():
+        Ac = self.bruteArea()
+        Wx1 = self.Wx(self.h1) # top fibre
+        Wx2 = self.Wx(self.h2)
+        Pe = P * self.e()
 
+        #Magnel inequations
+        emptyTopFibre = -P / Ac + (Pe - Mi) / Wx1 <= self.fctmt(t, s)
+        emptyBottomFibre = -P / Ac + (-Pe + Mi) / Wx2 >= -0.45 * self.fckt(t, s)
+        loadedTopFibre = -P / Ac + (Pe - Mf) / Wx1 >= -0.45 * self.fck
+        loadedBottomFibre = -P / Ac + (-Pe + Mf) / Wx2 <= self.fctm()
+
+        return emptyTopFibre and emptyBottomFibre and loadedTopFibre and loadedBottomFibre
+
+
+class TConcSect(ConcreteSection):
+    DEFAULT_t1 = 200 #FLANGE THICKNESS
+    DEFAULT_t = 250 #WEB THICKNESS
+
+    def __init__(self, **kwargs):
+        self.t1 = kwargs.get('t1', TConcSect.DEFAULT_t1)
+        self.t = kwargs.get('t', TConcSect.DEFAULT_t)
+        super().__init__(
+            fck=kwargs.get('fck', ConcreteSection.DEFAULT_fck),
+            fyk=kwargs.get('fyk', ConcreteSection.DEFAULT_fyk),
+            fpk=kwargs.get('fpk', ConcreteSection.DEFAULT_fpk),
+            Es=kwargs.get('Es', ConcreteSection.DEFAULT_Es),
+            Ep=kwargs.get('Ep', ConcreteSection.DEFAULT_Ep),
+            gc=kwargs.get('gc', ConcreteSection.DEFAULT_gc),
+            gs=kwargs.get('gs', ConcreteSection.DEFAULT_gs),
+            gp=kwargs.get('gp', ConcreteSection.DEFAULT_gp),
+            As1=kwargs.get('As1', ConcreteSection.DEFAULT_As1),
+            As2=kwargs.get('As2', ConcreteSection.DEFAULT_As2),
+            Ap=kwargs.get('Ap', ConcreteSection.DEFAULT_Ap),
+            b=kwargs.get('b', ConcreteSection.DEFAULT_b),
+            h=kwargs.get('h', ConcreteSection.DEFAULT_h),
+            ds1=kwargs.get('ds1', ConcreteSection.DEFAULT_ds1),
+            ds2=kwargs.get('ds2', ConcreteSection.DEFAULT_ds2),
+            dp=kwargs.get('dp', ConcreteSection.DEFAULT_dp),
+            N=kwargs.get('N', ConcreteSection.DEFAULT_N),
+            M=kwargs.get('M', ConcreteSection.DEFAULT_M)
+        )
+
+    def bruteArea(self):
+        return (self.b - self.t) * self.t1 + self.h * self.t
+
+    def xcentroid(self):
+        return self.b / 2
+
+    def ycentroid(self):
+        Q1 = (self.b - self.t) * pow(self.t1, 2) / 2
+        Q2 = self.t * pow(self.h, 2) / 2
+        return (Q1 + Q2) / self.bruteArea()
+
+    def Ix0(self):
+        y = self.ycentroid()
+        flangeHeight = self.h - self.t1
+        # flange inertia from flange centroid
+        Ifx0 = self.b * pow(self.t1, 3) / 12
+        # steiner term for flange inertia
+        Ifst = self.b * self.t1 * pow(y - self.t1 / 2, 2)
+        # web inertia from web centroid
+        Iwxo = self.t * pow(flangeHeight, 3) / 12
+        # steiner term form web inertia
+        IWst = self.t * flangeHeight * pow(self.h - y - flangeHeight / 2, 2)
+
+        return Ifx0 + Ifst + Iwxo + IWst
+
+    def Ix(self, d):
         pass
 
-if __name__ == "__main__":
-    defaultConcBeam = RectConcSect()
-    print(defaultConcBeam.hmgSection())
+    def hmgSection(self):
+        pass
 
+    def magnelTensionLimit(self, P, Mi, Mf, t, s):
+        pass
+if __name__ == "__main__":
+   # defaultRectConcBeam = RectConcSect()
+   # print(defaultRectConcBeam.hmgSection())
+    defaultTConcBeam = TConcSect()
+    print(defaultTConcBeam.bruteArea())
+    print(defaultTConcBeam.ycentroid())
+    print(defaultTConcBeam.Ix0())
