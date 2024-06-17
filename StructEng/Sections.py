@@ -38,12 +38,13 @@ class Section(ABC):
         :param d: mm distance from x-axis through the section's centroid"""
         pass
 
-    def Wx(self, h: float):
-        """elastic section modulus considering the inertia from the centroid to the
-        top fibre.
-        :param h: mm distance from centroid to the top or bottom fibre
+    @staticmethod
+    def Q(A, d):
+        """Stactic area moment from an arbitrary axis
+        :param A: Area to calculate the moment of
+        :param d: Distance measured orthogonally to the reference axis
         """
-        return self.Ix0() / h
+        return A * d
 
 
 class ConcreteSection(Section):
@@ -91,8 +92,8 @@ class ConcreteSection(Section):
         #DIMENSIONS
         self.b = kwargs.get('b')
         self.h = kwargs.get('h')
-        self.h1 = 0
-        self.h2 = 0
+        self.h1 = self.h1()
+        self.h2 = self.h - self.h1
 
         #REINFORCEMENT POSITIONS
         self.ds1 = kwargs.get('ds1')
@@ -100,9 +101,47 @@ class ConcreteSection(Section):
         self.dp = kwargs.get('dp')
         self.dc = self.ycentroid()
 
+        #HOMOGENIZED SECTIONS
+        self.hmgSect = self.hmgSection()
+
         #LOADS
         self.N = kwargs.get('N')
         self.M = kwargs.get('M')
+
+#------------SETTERS-----------------
+
+    def set_gc(self, gc):
+        self.gc = gc
+
+    def set_gs(self, gs):
+        self.gs = gs
+
+    def set_gp(self, gp):
+        self.gp = gp
+
+    def set_As1(self, As1):
+        self.As1 = As1
+
+    def set_As2(self, As2):
+        self.As2 = As2
+
+    def set_Ap(self, Ap):
+        self.Ap = Ap
+
+    def set_ds1(self, ds1):
+        self.ds1 = ds1
+
+    def set_ds2(self, ds2):
+        self.ds2 = ds2
+
+    def set_dp(self, dp):
+        self.dp = dp
+
+    def set_N(self, N):
+        self.N = N
+
+    def set_M(self, M):
+        self.M = M
 
     @abstractmethod
     def hmgSection(self):
@@ -122,6 +161,8 @@ class ConcreteSection(Section):
         """
         pass
 
+
+#------------CONCRETE METHODS---------------------
     @staticmethod
     def Bcc(t: float, s: float):
         """time dependent scalar that reduces concrete strength for a time t
@@ -163,6 +204,37 @@ class ConcreteSection(Section):
         return self.dp - self.ycentroid()
 
 
+#-----------STRAIN SECTION METHODS ------------------
+    def h1(self): #test
+        """signed distance of neutral fibre from the top fibre"""
+        num = self.M * self.hmgSect['hmgQ'] - self.N * self.hmgSect['hmgI']
+        dem = self.M * self.hmgSect['hmgA'] - self.N * self.hmgSect['hmgQ']
+        return num / dem
+
+    def k(self): # test
+        """signed curvature of the section"""
+        num = self.N * self.hmgSect['hmgQ'] - self.M * self.hmgSect['hmgArea']
+        dem = self.Ecm * (pow(self.hmgSect['hmgQ'], 2) - self.hmgSect['hmgArea'] * self.hmgSect['hmgI'])
+        return num / dem
+
+    def eps_0(self): # test
+        """signed strain of top fibre"""
+        num = self.M * self.hmgSect['hmgQ'] - self.hmgSect['hmgI'] * self.N
+        dem = self.Ecm * (pow(self.hmgSect['hmgQ'], 2) - self.hmgSect['hmgA'] * self.hmgSect['hmgI'])
+        return num / dem
+
+#----------MODULOS RESITENTES------------
+    def Wx01(self) -> float(): #text
+        """elastic section modulus considering the inertia from the centroid to the
+        top fibre and the distance from the centroid to the top fibre"""
+        return self.Ix0() / self.ycentroid()
+
+    def Wx02(self) ->float(): #test
+        """elastic section modulus considering the inertia from the centroid to the
+        top fibre and the distance from the centroid to the top fibre"""
+        return self.Ix0() / (self.h - self.ycentroid())
+
+
 class RectConcSect(ConcreteSection):
     """
         :param fck: concrete characteristic strength
@@ -185,6 +257,7 @@ class RectConcSect(ConcreteSection):
         :param N: axial load
         :param M: torque
     """
+
     def __init__(self, **kwargs):
 
         super().__init__(
@@ -254,8 +327,8 @@ class RectConcSect(ConcreteSection):
 
     def magnelTensionLimit(self, Mi: float, Mf: float, t: float, s: float) -> bool():
         Ac = self.bruteArea()
-        Wx1 = self.Wx(self.h1) # top fibre
-        Wx2 = self.Wx(self.h2)
+        Wx1 = self.Wx01() # top fibre
+        Wx2 = self.Wx02()
         Pe = self.N * self.e()
 
         #Magnel inequations
