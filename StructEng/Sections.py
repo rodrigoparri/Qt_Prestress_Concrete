@@ -32,16 +32,16 @@ class Section(ABC):
         pass
 
     @abstractmethod
-    def Ix(self, d):
+    def Ix(self, d: float):
         """Moment of inertia af the original section (considered concrete-massive)
         from an arbitrary axis parallel to the x-axis
-        d: distance from x-axis through the section's centroid"""
+        :param d: mm distance from x-axis through the section's centroid"""
         pass
 
-    def Wx(self, h):
+    def Wx(self, h: float):
         """elastic section modulus considering the inertia from the centroid to the
         top fibre.
-        :param h: distance from centroid to the top or bottom fibre
+        :param h: mm distance from centroid to the top or bottom fibre
         """
         return self.Ix0() / h
 
@@ -111,20 +111,19 @@ class ConcreteSection(Section):
         pass
 
     @abstractmethod
-    def magnelTensionLimit(self, P, Mi, Mf, t, s):
+    def magnelTensionLimit(self, Mi: float, Mf: float, t: float, s: float):
         """
         checks if a section meets tension limits according to magnel diagrams.
         this is a short-term check.
-        :param P: effective pretension force (after short-term losses)
-        :param Mi: initial moment (at the instant of prestress)
-        :param Mf: complete moment under service loads
-        :param t: time of prestress in days from concrete pouring
-        :param s: cement type
+        :param Mi: mm*N initial moment (at the instant of prestress)
+        :param Mf: mm*N complete moment under service loads
+        :param t: days time of prestress from concrete pouring
+        :param s: non-dimensional. cement type
         """
         pass
 
     @staticmethod
-    def Bcc(t, s):
+    def Bcc(t: float, s: float):
         """time dependent scalar that reduces concrete strength for a time t
         between 3 and 28 days
         :param t: time 0-28 days
@@ -136,24 +135,26 @@ class ConcreteSection(Section):
         """ average concrete compression strength"""
         return self.fck + 8
 
-    def fcmt(self, t, s):
+    def fcmt(self, t: float, s: float):
         """time dependent average concrete compression strength"""
         return ConcreteSection.Bcc(t, s) * self.fcm()
 
     def fctm(self):
         """average concrete tensile strength"""
-        return (self.fck <= 50) * (0.30 * pow(self.fck, 0.66)) + (self.fck > 50) \
-    * (2,12 * log(1 + self.fcm() * 0.1))
+        if self.fck <= 50:
+            return 0.30 * pow(self.fck, 2 / 3)
+        else:
+            return 2.12 * log(1 + self.fcm() * 0.1)
 
-    def fctmt(self, t, s):
+    def fctmt(self, t: float, s: float):
         """average time dependent concrete tensile strength"""
         return ConcreteSection.Bcc(t, s) * self.fctm()
-    def fckt(self, t, s):
+    def fckt(self, t: float, s: float):
         """time dependent concrete characteristic compression strength. t in days
         """
         return ConcreteSection.Bcc(t, s) * self.fck
 
-    def Ecmt(self, t, s):
+    def Ecmt(self, t: float, s: float):
         """time dependent secant concrete elastic modulus"""
         return pow(self.fcmt(t, s) / self.fcm(), 0.3) * self.Ecm
 
@@ -161,30 +162,31 @@ class ConcreteSection(Section):
         """distance from the centroid to the pre-tensioned steel centroid"""
         return self.dp - self.ycentroid()
 
-class RectConcSect(ConcreteSection):
 
+class RectConcSect(ConcreteSection):
+    """
+        :param fck: concrete characteristic strength
+        :param fyk: steel characteristic strength
+        :param fpk: pre-tensioned steel characteristic strength
+        :param Ecm: secant elastic modulus
+        :param Es: reinforcement steel elastic modulus
+        :param Ep: pre-tensioned steel elastic modulus
+        :param gc: concrete strength reduction coefficient
+        :param gs: passive steel strength reduction coefficient
+        :param gp: active steel strength reduction coefficient
+        :param As1: top steel reinforcement area
+        :param As2: bottom steel reinforcement area
+        :param Ap: pre-tensioned steel area
+        :param b: width
+        :param h: height
+        :param ds1: distance from top fibre to As1 centroid
+        :param ds2: distance from top fibre to As2 centroid
+        :param dp: distance from top fibre to Ap centroid
+        :param N: axial load
+        :param M: torque
+    """
     def __init__(self, **kwargs):
-        """
-            :param fck: concrete characteristic strength
-            :param fyk: steel characteristic strength
-            :param fpk: pre-tensioned steel characteristic strength
-            :param Ecm: secant elastic modulus
-            :param Es: reinforcement steel elastic modulus
-            :param Ep: pre-tensioned steel elastic modulus
-            :param gc: concrete strength reduction coefficient
-            :param gs: passive steel strength reduction coefficient
-            :param gp: active steel strength reduction coefficient
-            :param As1: top steel reinforcement area
-            :param As2: bottom steel reinforcement area
-            :param Ap: pre-tensioned steel area
-            :param b: width
-            :param h: height
-            :param ds1: distance from top fibre to As1 centroid
-            :param ds2: distance from top fibre to As2 centroid
-            :param dp: distance from top fibre to Ap centroid
-            :param N: axial load
-            :param M: torque
-        """
+
         super().__init__(
             fck=kwargs.get('fck', ConcreteSection.DEFAULT_fck),
             fyk=kwargs.get('fyk', ConcreteSection.DEFAULT_fyk),
@@ -250,17 +252,17 @@ class RectConcSect(ConcreteSection):
         hmg['hmgI'] = hmgI
         return hmg
 
-    def magnelTensionLimit(self, P, Mi, Mf, t, s) -> bool():
+    def magnelTensionLimit(self, Mi: float, Mf: float, t: float, s: float) -> bool():
         Ac = self.bruteArea()
         Wx1 = self.Wx(self.h1) # top fibre
         Wx2 = self.Wx(self.h2)
-        Pe = P * self.e()
+        Pe = self.N * self.e()
 
         #Magnel inequations
-        emptyTopFibre = -P / Ac + (Pe - Mi) / Wx1 <= self.fctmt(t, s)
-        emptyBottomFibre = -P / Ac + (-Pe + Mi) / Wx2 >= -0.45 * self.fckt(t, s)
-        loadedTopFibre = -P / Ac + (Pe - Mf) / Wx1 >= -0.45 * self.fck
-        loadedBottomFibre = -P / Ac + (-Pe + Mf) / Wx2 <= self.fctm()
+        emptyTopFibre = -self.N / Ac + (Pe - Mi) / Wx1 <= self.fctmt(t, s)
+        emptyBottomFibre = -self.N / Ac + (-Pe + Mi) / Wx2 >= -0.45 * self.fckt(t, s)
+        loadedTopFibre = -self.N / Ac + (Pe - Mf) / Wx1 >= -0.45 * self.fck
+        loadedBottomFibre = -self.N / Ac + (-Pe + Mf) / Wx2 <= self.fctm()
 
         return emptyTopFibre and emptyBottomFibre and loadedTopFibre and loadedBottomFibre
 
@@ -318,18 +320,20 @@ class TConcSect(ConcreteSection):
 
         return Ifx0 + Ifst + Iwxo + IWst
 
-    def Ix(self, d):
+    def Ix(self, d: float):
         pass
 
     def hmgSection(self):
         pass
 
-    def magnelTensionLimit(self, P, Mi, Mf, t, s):
+    def magnelTensionLimit(self, Mi: float, Mf: float, t: float, s: float):
         pass
+
+
 if __name__ == "__main__":
    # defaultRectConcBeam = RectConcSect()
    # print(defaultRectConcBeam.hmgSection())
-    defaultTConcBeam = TConcSect()
+    defaultTConcBeam = TConcSect(b=750)
     print(defaultTConcBeam.bruteArea())
     print(defaultTConcBeam.ycentroid())
     print(defaultTConcBeam.Ix0())
