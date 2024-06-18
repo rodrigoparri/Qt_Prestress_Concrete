@@ -1,11 +1,12 @@
 import unittest
 
-from StructEng import Section
+from StructEng import RectConcSect, TConcSect
 
 
 class TestConcSect(unittest.TestCase):
-    RectBeam_default = Sections.RectConcSect()
-    Beam_fck_60 = Sections.RectConcSect(fck=60)
+    RectBeam_default = RectConcSect()
+    Beam_fck_60 = RectConcSect(fck=60)
+    TBeam = TConcSect()
 
     def test_Bcc_returns_correct_value(self):
 
@@ -44,7 +45,7 @@ class TestConcSect(unittest.TestCase):
         self.assertEqual(self.RectBeam_default.e(), self.RectBeam_default.dp - self.RectBeam_default.ycentroid())
 
 class TestRectSect(unittest.TestCase):
-    RectBeam = Sections.RectConcSect(
+    RectBeam = RectConcSect(
         fck=20,
         fyk=400,
         fpk=1750,
