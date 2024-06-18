@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from math import exp, log
-import Section
+from class_Section import Section
 
 
 class ConcreteSection(Section):
@@ -31,7 +31,7 @@ class ConcreteSection(Section):
         self.fck = kwargs.get('fck')
         self.fyk = kwargs.get('fyk')
         self.fpk = kwargs.get('fpk')
-        self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3)
+        self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3
         self.Es = kwargs.get('Es') #210,000Mpa
         self.Ep = kwargs.get('Ep') #195,000Mpa
         self.ns = self.Es / self.Ecm
@@ -69,6 +69,37 @@ class ConcreteSection(Section):
         #NEUTRAL FIBRE
         self.h1 = self.h1()
         self.h2 = self.h - self.h1
+
+    def __str__(self):
+        str = f"""
+        fck: concrete characteristic strength......................................{self.fck} Mpa
+        fyk: passive steel characteristic strength.................................{self.fyk} Mpa
+        fpk: pre-stress steel characteristic strength..............................{self.fpk} Mpa
+        Ecm: concrete average Young's modulus......................................{self.Ecm} Mpa
+        Es: passive steel Young's modulus..........................................{self.Es} Mpa
+        Ep: pre-stress steel Young's modulus.......................................{self.Ep} Mpa
+        ns: passive steel homogenization coefficient...............................{self.ns} -adim-
+        np: pre-stress steel homogenization coefficient............................{self.np} -adim-
+        s: cement type for time-dependent calculations (0.2, 0.25, 0.38)...........{self.s} -adim-
+        prestress_time: days after concrete pouring when pre-stress is applied.....{self.prestress_time} days
+        gc: concrete strength reduction coefficient................................{self.gc} -adim-
+        gs: steel strength reduction coefficient...................................{self.gs} -adim-
+        gp: pre-stress steel strength reduction coefficient........................{self.gp} -adim-
+        As1: passive steel area in the compression part of the beam................{self.As1} mm2
+        As2: passive steel area in the tension part of the beam....................{self.As2} mm2
+        Ap: pre-stress steel area..................................................{self.Ap} mm2
+        b: width of the smallest bounding box that contains the section............{self.b} mm
+        h: height of the smallest bounding box that contains the section...........{self.h} mm
+        ds1: distance from the top fibre to the centroid of As1....................{self.ds1} mm
+        ds2: distance from the top fibre to the centroid of As1....................{self.ds2} mm
+        dp: distance from the top fibre to the centroid of Ap......................{self.dp} mm
+        dc: distance from the top fibre to the resultant force in the concrete.....{self.dc} mm
+        homogenized_section:..............................{self.hmgSect} mm2, mm3, mm4
+        N: normal force applied in the section's centroid..........................{self.N} N
+        M: total moment applied to the section.....................................{self.M} mm*N
+        h1: signed distance from the top fibre the neutral fibre...................{self.h1} mm
+        """
+        return str
 
 #------------SETTERS-----------------
 

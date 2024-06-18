@@ -1,4 +1,4 @@
-from ConcreteSection import ConcreteSection
+from class_ConcreteSection import ConcreteSection
 
 
 class TConcSect(ConcreteSection):

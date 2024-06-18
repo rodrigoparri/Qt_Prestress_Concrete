@@ -1,4 +1,4 @@
-from ConcreteSection import ConcreteSection
+from class_ConcreteSection import ConcreteSection
 
 class RectConcSect(ConcreteSection):
     """
@@ -50,6 +50,9 @@ class RectConcSect(ConcreteSection):
             M=kwargs.get('M', ConcreteSection.DEFAULT_M)
 
         )
+
+    def __str__(self):
+        return super().__str__()
 
     def bruteArea(self) -> float():
         return self.b * self.h
@@ -104,3 +107,30 @@ class RectConcSect(ConcreteSection):
         loadedBottomFibre = -self.N / Ac + (-Pe + Mf) / Wx2 <= self.fctm()
 
         return emptyTopFibre and emptyBottomFibre and loadedTopFibre and loadedBottomFibre
+
+
+if __name__ == "__main__":
+    beam = RectConcSect(
+        fck=20,
+        fyk=400,
+        fpk=1750,
+        Es=200E3,
+        Ep=195E3,
+        s=0.25,
+        t=7,
+        gc=1.5,
+        gs=1.15,
+        gp=1.15,
+        As1=900,
+        As2=1800,
+        Ap=1000,
+        b=300,
+        h=800,
+        ds1=60,
+        ds2=740,
+        dp=600,
+        N=-1350E3,
+        M=-710E6
+    )
+
+    print(beam)

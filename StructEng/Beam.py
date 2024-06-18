@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-import Section
+import class_Section
 
 
 class Beam():
