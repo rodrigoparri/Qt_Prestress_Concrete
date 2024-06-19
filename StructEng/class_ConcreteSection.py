@@ -68,7 +68,7 @@ class ConcreteSection(Section):
 
         #STRAIN
         self.crv = self.k() # CURVATURE
-        self.eps_0 = self.eps_0() # TOP FIBRE'S STRAIN
+        self.epsilon_c0 = self.eps_0() # TOP FIBRE'S STRAIN
 
     def __str__(self):
         str = f"""
@@ -98,7 +98,7 @@ class ConcreteSection(Section):
         N: normal force applied in the section's centroid..........................{self.N} N
         M: total moment applied to the section.....................................{self.M} mm*N
         k: signed curvature of the section.........................................{self.crv} mm-1
-        eps_0: signed strain of top fibre..........................................{self.eps_0} -admin-
+        eps_0: signed strain of top fibre..........................................{self.epsilon_c0} -admin-
         """
         return str
 
@@ -145,7 +145,7 @@ class ConcreteSection(Section):
 
         # STRAIN
         self.crv = self.k()  # CURVATURE
-        self.eps_0 = self.eps_0()  # TOP FIBRE'S STRAIN
+        self.epsilon_c0 = self.eps_0()  # TOP FIBRE'S STRAIN
 
     @abstractmethod
     def hmgSection(self):

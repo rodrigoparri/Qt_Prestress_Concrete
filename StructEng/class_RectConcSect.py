@@ -135,4 +135,4 @@ if __name__ == "__main__":
         M=-710E6
     )
 
-    print(beam)
+    print(beam.__dict__)
