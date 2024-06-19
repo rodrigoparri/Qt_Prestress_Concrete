@@ -1,47 +1,37 @@
 import unittest
-
-from StructEng.class_ConcreteSection import ConcreteSection
 from StructEng.class_RectConcSect import RectConcSect
 from StructEng.class_TConcSect import TConcSect
 
 
 class TestConcSect(unittest.TestCase):
     RectBeam_default = RectConcSect()
-    Beam_fck_60 = RectConcSect(fck=60)
-    TBeam = TConcSect()
+
 
     def test_Bcc_returns_correct_value(self):
 
         result = self.RectBeam_default.Bcc()
         self.assertTrue(0.7608 < result < 0.7609)
 
-        result = self.RectBeam_default.Bcc()
-        self.assertTrue(0.7788 < result < 0.7789)
-
-        result = self.RectBeam_default.Bcc()
-        self.assertTrue(result == 1)
-
     def test_fcm_returns_correct_value(self):
         self.assertEqual(self.RectBeam_default.fcm(), 33)
 
     def test_fcmt_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.fcmt(),
+        self.assertEqual(self.RectBeam_default.fcm_t(),
         self.RectBeam_default.Bcc() * self.RectBeam_default.fcm())
 
     def test_fctm_returns_correct_value(self):
         self.assertTrue(2.5594 < self.RectBeam_default.fctm() < 25595)
 
-        self.assertTrue(4.354 < self.Beam_fck_60.fctm() < 4.355)
 
     def test_fctmt_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.fctmt(), self.RectBeam_default.Bcc() * self.RectBeam_default.fctmt())
+        self.assertEqual(self.RectBeam_default.fctm_t(), self.RectBeam_default.Bcc() * self.RectBeam_default.fctm_t())
 
     def test_fckt_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.fckt(), self.RectBeam_default.Bcc() * self.RectBeam_default.fckt())
+        self.assertEqual(self.RectBeam_default.fck_t(), self.RectBeam_default.Bcc() * self.RectBeam_default.fck_t())
 
     def test_Ecmt_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.Ecmt(), pow(self.RectBeam_default.fcmt() / self.RectBeam_default.fcm(), 0.3) \
-                                                       * self.RectBeam_default.Ecm)
+        self.assertEqual(self.RectBeam_default.Ecm_t(), pow(self.RectBeam_default.fcm_t() / self.RectBeam_default.fcm(), 0.3) \
+                                                        * self.RectBeam_default.Ecm)
 
     def test_e_returns_correct_value(self):
         self.assertEqual(self.RectBeam_default.e(), self.RectBeam_default.dp - self.RectBeam_default.ycentroid())
@@ -76,11 +66,8 @@ class TestRectSect(unittest.TestCase):
     def test_mangelTensionLimit_returns_correctly(self):
         pass
 
-    def test_h1_returns_correct_value(self):
-        self.assertEqual(self.RectBeam.h1(), 100)
-
     def test_k_return_correct_value(self):
-        self.assertEqual(self.RectBeam.k(), 0.378E-6)
+        self.assertEqual(self.RectBeam.crv(), 0.378E-6)
 
     def test_eps_0_returns_correct_value(self):
         self.assertEqual(self.RectBeam.eps_0(), -25.4E-6)

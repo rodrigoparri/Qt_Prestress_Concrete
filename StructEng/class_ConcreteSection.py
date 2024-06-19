@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from math import exp, log
-from class_Section import Section
+from StructEng.class_Section import Section
 
 
 class ConcreteSection(Section):
@@ -11,7 +11,7 @@ class ConcreteSection(Section):
     DEFAULT_Es = 21E4
     DEFAULT_Ep = 195E3
     DEFAULT_s = 0.2
-    DEFAULT_t = 5
+    DEFAULT_prestress_time = 5
     DEFAULT_gc = 1.5
     DEFAULT_gs = 1.15
     DEFAULT_gp = 1.15
@@ -66,9 +66,9 @@ class ConcreteSection(Section):
         self.N = kwargs.get('N')
         self.M = kwargs.get('M')
 
-        #NEUTRAL FIBRE
-        self.h1 = self.h1()
-        self.h2 = self.h - self.h1
+        #STRAIN
+        self.crv = self.k() # CURVATURE
+        self.eps_0 = self.eps_0() # TOP FIBRE'S STRAIN
 
     def __str__(self):
         str = f"""
@@ -97,44 +97,55 @@ class ConcreteSection(Section):
         homogenized_section:..............................{self.hmgSect} mm2, mm3, mm4
         N: normal force applied in the section's centroid..........................{self.N} N
         M: total moment applied to the section.....................................{self.M} mm*N
-        h1: signed distance from the top fibre the neutral fibre...................{self.h1} mm
+        k: signed curvature of the section.........................................{self.crv} mm-1
+        eps_0: signed strain of top fibre..........................................{self.eps_0} -admin-
         """
         return str
 
-#------------SETTERS-----------------
+    def set_DEFAULT(self):
+        """set all class attributes to defaults"""
 
-    def set_gc(self, gc):
-        self.gc = gc
+        self.fck = self.DEFAULT_fck
+        self.fyk = self.DEFAULT_fyk
+        self.fpk = self.DEFAULT_fpk
+        self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3
+        self.Es = self.DEFAULT_Es
+        self.Ep = self.DEFAULT_Ep
+        self.ns = self.Es / self.Ecm
+        self.np = self.Ep / self.Ecm
+        self.s = self.DEFAULT_s
+        self.prestress_time = self.DEFAULT_prestress_time
 
-    def set_gs(self, gs):
-        self.gs = gs
+        # MATERIAL COEFFICIENTS
+        self.gc = self.DEFAULT_gc
+        self.gs = self.DEFAULT_gs
+        self.gp = self.DEFAULT_gp
 
-    def set_gp(self, gp):
-        self.gp = gp
+        # REINFORCEMENT AREA
+        self.As1 = self.DEFAULT_As1
+        self.As2 = self.DEFAULT_As2
+        self.Ap = self.DEFAULT_Ap
 
-    def set_As1(self, As1):
-        self.As1 = As1
+        # DIMENSIONS
+        self.b = self.DEFAULT_b
+        self.h = self.DEFAULT_h
 
-    def set_As2(self, As2):
-        self.As2 = As2
+        # REINFORCEMENT POSITIONS
+        self.ds1 = self.DEFAULT_ds1
+        self.ds2 = self.DEFAULT_ds2
+        self.dp = self.DEFAULT_dp
+        self.dc = 0
 
-    def set_Ap(self, Ap):
-        self.Ap = Ap
+        # HOMOGENIZED SECTIONS
+        self.hmgSect = self.hmgSection()
 
-    def set_ds1(self, ds1):
-        self.ds1 = ds1
+        # LOADS
+        self.N = self.DEFAULT_N
+        self.M = self.DEFAULT_M
 
-    def set_ds2(self, ds2):
-        self.ds2 = ds2
-
-    def set_dp(self, dp):
-        self.dp = dp
-
-    def set_N(self, N):
-        self.N = N
-
-    def set_M(self, M):
-        self.M = M
+        # STRAIN
+        self.crv = self.k()  # CURVATURE
+        self.eps_0 = self.eps_0()  # TOP FIBRE'S STRAIN
 
     @abstractmethod
     def hmgSection(self):
@@ -164,8 +175,8 @@ class ConcreteSection(Section):
         """ average concrete compression strength"""
         return self.fck + 8
 
-    def fcmt(self):
-        """time dependent average concrete compression strength"""
+    def fcm_t(self):
+        """time-dependent average concrete compression strength"""
         return self.Bcc() * self.fcm()
 
     def fctm(self):
@@ -175,29 +186,24 @@ class ConcreteSection(Section):
         else:
             return 2.12 * log(1 + self.fcm() * 0.1)
 
-    def fctmt(self):
-        """average time dependent concrete tensile strength"""
+    def fctm_t(self):
+        """average time-dependent concrete tensile strength"""
         return self.Bcc() * self.fctm()
 
-    def fckt(self):
-        """time dependent concrete characteristic compression strength. t in days
+    def fck_t(self):
+        """time-dependent concrete characteristic compression strength. t in days
         """
         return self.Bcc() * self.fck
 
-    def Ecmt(self):
-        """time dependent secant concrete elastic modulus"""
-        return pow(self.fcmt() / self.fcm(), 0.3) * self.Ecm
+    def Ecm_t(self):
+        """time-dependent secant concrete elastic modulus"""
+        return pow(self.fcm_t() / self.fcm(), 0.3) * self.Ecm
 
     def e(self):
         """distance from the centroid to the pre-tensioned steel centroid"""
         return self.dp - self.ycentroid()
 
 #-----------STRAIN SECTION METHODS ------------------
-    def h1(self): #test
-        """signed distance of neutral fibre from the top fibre"""
-        num = self.M * self.hmgSect['Q'] - self.N * self.hmgSect['I']
-        dem = self.M * self.hmgSect['A'] - self.N * self.hmgSect['Q']
-        return num / dem
 
     def k(self): # test
         """signed curvature of the section"""

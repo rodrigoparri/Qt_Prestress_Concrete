@@ -1,4 +1,4 @@
-from class_ConcreteSection import ConcreteSection
+from StructEng.class_ConcreteSection import ConcreteSection
 
 class RectConcSect(ConcreteSection):
     """
@@ -26,7 +26,6 @@ class RectConcSect(ConcreteSection):
     """
 
     def __init__(self, **kwargs):
-
         super().__init__(
             fck=kwargs.get('fck', ConcreteSection.DEFAULT_fck),
             fyk=kwargs.get('fyk', ConcreteSection.DEFAULT_fyk),
@@ -34,7 +33,7 @@ class RectConcSect(ConcreteSection):
             Es=kwargs.get('Es', ConcreteSection.DEFAULT_Es),
             Ep=kwargs.get('Ep', ConcreteSection.DEFAULT_Ep),
             s=kwargs.get('s', ConcreteSection.DEFAULT_s),
-            prestress_time=kwargs.get('prestress_time', ConcreteSection.DEFAULT_t),
+            prestress_time=kwargs.get('prestress_time', ConcreteSection.DEFAULT_prestress_time),
             gc=kwargs.get('gc', ConcreteSection.DEFAULT_gc),
             gs=kwargs.get('gs', ConcreteSection.DEFAULT_gs),
             gp=kwargs.get('gp', ConcreteSection.DEFAULT_gp),
@@ -72,19 +71,22 @@ class RectConcSect(ConcreteSection):
     def hmgSection(self):
 
         hmg = dict()
+
+        y = self.ycentroid()
+
         hmgA = self.bruteArea()
         hmgAc1 = self.As1 * (self.ns - 1)
         hmgAc2 = self.As2 * (self.ns - 1)
         hmgAcp = self.Ap * (self.np - 1)
         hmgArea = hmgA + hmgAc1 + hmgAc2 + hmgAcp
 
-        hmgQA = hmgA * self.dc
+        hmgQA = hmgA * y
         hmgQc1 = hmgAc1 * self.ds1
         hmgQc2 = hmgAc2 * self.ds2
         hmgQcp = hmgAcp * self.dp
         hmgQ = hmgQA + hmgQc1 + hmgQc2 + hmgQcp
 
-        hmgIA = self.Ix(self.ycentroid())
+        hmgIA = self.Ix(y)
         hmgIc1 = hmgQc1 * self.ds1
         hmgIc2 = hmgQc2 * self.ds2
         hmgIcp = hmgQcp * self.dp
@@ -101,8 +103,8 @@ class RectConcSect(ConcreteSection):
         Pe = self.N * self.e()
 
         #Magnel inequations
-        emptyTopFibre = -self.N / Ac + (Pe - Mi) / Wx1 <= self.fctmt()
-        emptyBottomFibre = -self.N / Ac + (-Pe + Mi) / Wx2 >= -0.45 * self.fckt()
+        emptyTopFibre = -self.N / Ac + (Pe - Mi) / Wx1 <= self.fctm_t()
+        emptyBottomFibre = -self.N / Ac + (-Pe + Mi) / Wx2 >= -0.45 * self.fck_t()
         loadedTopFibre = -self.N / Ac + (Pe - Mf) / Wx1 >= -0.45 * self.fck
         loadedBottomFibre = -self.N / Ac + (-Pe + Mf) / Wx2 <= self.fctm()
 

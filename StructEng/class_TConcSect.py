@@ -1,9 +1,9 @@
-from class_ConcreteSection import ConcreteSection
+from StructEng.class_ConcreteSection import ConcreteSection
 
 
 class TConcSect(ConcreteSection):
     DEFAULT_t1 = 200
-    DEFAULT_t = 250
+    DEFAULT_prestress_time = 250
 
     def __init__(self, **kwargs):
         self.t1 = kwargs.get('t1', TConcSect.DEFAULT_t1)  # FLANGE THICKNESS

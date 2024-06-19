@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from math import exp, log
+
 """
 ---------UNITS--------------------
 length: mm
@@ -47,21 +47,6 @@ class Section(ABC):
         return A * d
 
 
-
-
-
-
-
-
-
-
-
 if __name__ == "__main__":
-   defaultRectConcBeam = RectConcSect()
-   # print(defaultRectConcBeam.hmgSection())
-   #defaultTConcBeam = TConcSect(b=750)
-   # print(defaultTConcBeam.bruteArea())
-   # print(defaultTConcBeam.ycentroid())
-   # print(defaultTConcBeam.Ix0())
-   print(defaultRectConcBeam.M)
+    pass
 
