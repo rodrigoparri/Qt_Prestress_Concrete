@@ -68,8 +68,50 @@ class TestRectSect(unittest.TestCase):
             self.assertIn(key, self.RectBeam.__dict__)
             self.assertEqual(value, self.RectBeam.__dict__[key])
 
-    def test_hmgSect_returns_correct_values(self):
-        pass
+    def test_bruteArea_returns_correct_value(self):
+        self.assertEqual(self.RectBeam.bruteArea(), self.kwargs['h'] * self.kwargs['b'])
+
+    def test_xCentroid_returns_correct_value(self):
+        self.assertEqual(self.RectBeam.xcentroid(), self.kwargs['b'] / 2)
+
+    def test_yCentroid_returns_correct_value(self):
+        self.assertEqual(self.RectBeam.ycentroid(), self.kwargs['h'] / 2)
+
+    def test_Ix0_returns_correct_value(self):
+        self.assertEqual(self.RectBeam.Ix0(), self.kwargs['b'] * pow(self.kwargs['h'], 3) / 12)
+
+    def test_Ix_returns_correct_values(self):
+        self.assertEqual(self.RectBeam.Ix(self.kwargs['h'] / 2), self.RectBeam.Ix0() + self.RectBeam.bruteArea() \
+                                                                 * pow(self.kwargs['h'] / 2, 2))
+
+    def test_ns_is_correct(self):
+        ns = self.kwargs['Es'] / self.RectBeam.Ecm
+        self.assertEqual(self.RectBeam.ns, ns)
+
+    def test_np_is_correct(self):
+        np = self.kwargs['Ep'] / self.RectBeam.Ecm
+        self.assertEqual(self.RectBeam.np, np)
+
+    def test_hmgA_returns_correct_values(self):
+        hmgA = self.RectBeam.bruteArea() + (self.kwargs['As1'] + self.kwargs['As2']) * (self.RectBeam.ns - 1) \
+        + self.kwargs['Ap'] * (self.RectBeam.np - 1)
+        self.assertEqual(self.RectBeam.hmgSect['A'], hmgA)
+
+    def test_hmgQ_returns_correct_values(self):
+        hmgQA = self.RectBeam.bruteArea() * self.kwargs['h'] / 2
+        hmgQAs = (self.kwargs['As1'] * self.kwargs['ds1'] + self.kwargs['As2'] * self.kwargs['ds2']) \
+        * (self.RectBeam.ns - 1)
+        hmgQAp = self.kwargs['Ap'] * (self.RectBeam.np - 1) * self.kwargs['dp']
+        hmgQ = hmgQA + hmgQAs + hmgQAp
+        self.assertEqual(self.RectBeam.hmgSect['Q'], hmgQ)
+
+    def test_hmgI_returns_correct_values(self):
+        hmgIA = self.RectBeam.Ix(self.kwargs['h'] / 2)
+        hmgIAs1 = self.kwargs['As1'] * (self.RectBeam.ns - 1) * pow(self.kwargs['ds1'], 2)
+        hmgIAs2 = self.kwargs['As2'] * (self.RectBeam.ns - 1) * pow(self.kwargs['ds2'], 2)
+        hmgIAp = self.kwargs['Ap'] * (self.RectBeam.np - 1) * pow(self.kwargs['dp'], 2)
+        hmgI = hmgIA + hmgIAs1 + hmgIAs2 + hmgIAp
+        self.assertEqual(self.RectBeam.hmgSect['I'], hmgI)
 
     def test_mangelTensionLimit_returns_correctly(self):
         pass
