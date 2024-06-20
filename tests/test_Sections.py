@@ -1,6 +1,6 @@
 import unittest
 from StructEng.class_RectConcSect import RectConcSect
-from StructEng.class_TConcSect import TConcSect
+#gitfrom StructEng.class_TConcSect import TConcSect
 
 
 class TestConcSect(unittest.TestCase):
