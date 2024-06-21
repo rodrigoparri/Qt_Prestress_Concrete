@@ -74,9 +74,15 @@ class ConcreteSection(Section):
     def __str__(self):
         str = f"""
         fck: concrete characteristic strength......................................{self.fck} Mpa
+        fck_t: concrete characteristic compression strength. t in days.............{self.fck_t()} Mpa
+        fcm: average concrete compression strength.................................{self.fcm()} Mpa
+        fcm_t: time-dependent average concrete compression strength................{self.fcm_t()} Mpa
+        fctm: average concrete tensile strength....................................{self.fctm()} Mpa
+        fctm_t: average time-dependent concrete tensile strength...................{self.fctm_t()} Mpa
         fyk: passive steel characteristic strength.................................{self.fyk} Mpa
         fpk: pre-stress steel characteristic strength..............................{self.fpk} Mpa
         Ecm: concrete average Young's modulus......................................{self.Ecm} Mpa
+        Ecm_t: time-dependent secant concrete elastic modulus......................{self.Ecm_t()} Mpa
         Es: passive steel Young's modulus..........................................{self.Es} Mpa
         Ep: pre-stress steel Young's modulus.......................................{self.Ep} Mpa
         ns: passive steel homogenization coefficient...............................{self.ns} -adim-
@@ -94,8 +100,7 @@ class ConcreteSection(Section):
         ds1: distance from the top fibre to the centroid of As1....................{self.ds1} mm
         ds2: distance from the top fibre to the centroid of As1....................{self.ds2} mm
         dp: distance from the top fibre to the centroid of Ap......................{self.dp} mm
-        dc: distance from the top fibre to the resultant force in the concrete.....{self.dc} mm
-        homogenized_section:..............................{self.hmgSect} mm2, mm3, mm4
+        homogenized_section:...........{self.hmgSect} mm2, mm3, mm4
         N: normal force applied in the section's centroid..........................{self.N} N
         M: total moment applied to the section.....................................{self.M} mm*N
         k: signed curvature of the section.........................................{self.crv} mm-1
@@ -171,8 +176,7 @@ class ConcreteSection(Section):
         return self.Bcc() * self.fctm()
 
     def fck_t(self):
-        """time-dependent concrete characteristic compression strength. t in days
-        """
+        """time-dependent concrete characteristic compression strength. t in days"""
         return self.Bcc() * self.fck
 
     def Ecm_t(self):

@@ -123,12 +123,25 @@ class TestRectSect(unittest.TestCase):
         self.assertEqual(self.RectBeam.hmgSect['I'], hmgI)
 
     def test_mangelTensionLimit_returns_correctly(self):
+       # self.RectBeam.set(self.kwargs)
+       # self.assertFalse(self.RectBeam.magnelTensionLimit(330, 1000))
+#
+       # self.RectBeam.set({'h':1500, 'dp':1000})
+       # self.assertTrue(self.RectBeam.magnelTensionLimit(330, 1000))
         pass
 
     def test_k_return_correct_value(self):
-        pass
+        self.RectBeam.set({'h':800, 'b':300, 'As1':900, 'As2':1800, 'Ap':1000, 'ds1':60, 'ds2':740, 'N':1350,
+                           'M':710, 'Ep':200E3, 'Es':200E3})
+
+        num = self.RectBeam.hmgSect['Q'] * self.RectBeam.N - self.RectBeam.M * self.RectBeam.hmgSect['A']
+        dem = self.RectBeam.Ecm * (self.RectBeam.hmgSect['Q'] ** 2 - self.RectBeam.hmgSect['A'] * self.RectBeam.hmgSect['I'])
+
+        self.assertEqual(self.RectBeam.crv, num / dem)
+        self.RectBeam.set(self.kwargs)
 
     def test_eps_0_returns_correct_value(self):
         pass
+
 if __name__=='__main__':
     unittest.main()

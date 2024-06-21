@@ -102,10 +102,10 @@ class RectConcSect(ConcreteSection):
         Pe = self.N * self.e()
 
         #Magnel inequations
-        emptyTopFibre = -self.N / Ac + (Pe - Mi) / Wx1 <= self.fctm_t()
-        emptyBottomFibre = -self.N / Ac + (-Pe + Mi) / Wx2 >= -0.45 * self.fck_t()
-        loadedTopFibre = -self.N / Ac + (Pe - Mf) / Wx1 >= -0.45 * self.fck
-        loadedBottomFibre = -self.N / Ac + (-Pe + Mf) / Wx2 <= self.fctm()
+        emptyTopFibre = 1.1 * self.N / Ac - (1.1 * Pe + Mi) / Wx1 <= self.fctm_t()
+        emptyBottomFibre = 1.1 * self.N / Ac + (1.1 * Pe + Mi) / Wx2 >= -0.45 * self.fck_t()
+        loadedTopFibre = 0.9 * self.N / Ac - (0.9 * Pe + Mf) / Wx1 >= -0.45 * self.fck
+        loadedBottomFibre = 0.9 * self.N / Ac + (0.9 * Pe + Mf) / Wx2 <= self.fctm()
 
         return emptyTopFibre and emptyBottomFibre and loadedTopFibre and loadedBottomFibre
 
@@ -134,6 +134,6 @@ if __name__ == "__main__":
         M=-710E6
     )
 
-    print(beam.__dict__)  # previous
-    beam.set(None)
-    print(beam.__dict__)  # default
+    print(beam.magnelTensionLimit(330, 1000))
+    beam.set({'h':1500, 'dp':1000})
+    print(beam.magnelTensionLimit(330, 1000))
