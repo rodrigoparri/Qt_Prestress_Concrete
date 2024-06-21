@@ -27,27 +27,26 @@ class RectConcSect(ConcreteSection):
 
     def __init__(self, **kwargs):
         super().__init__(
-            fck=kwargs.get('fck', ConcreteSection.DEFAULT_fck),
-            fyk=kwargs.get('fyk', ConcreteSection.DEFAULT_fyk),
-            fpk=kwargs.get('fpk', ConcreteSection.DEFAULT_fpk),
-            Es=kwargs.get('Es', ConcreteSection.DEFAULT_Es),
-            Ep=kwargs.get('Ep', ConcreteSection.DEFAULT_Ep),
-            s=kwargs.get('s', ConcreteSection.DEFAULT_s),
-            prestress_time=kwargs.get('prestress_time', ConcreteSection.DEFAULT_prestress_time),
-            gc=kwargs.get('gc', ConcreteSection.DEFAULT_gc),
-            gs=kwargs.get('gs', ConcreteSection.DEFAULT_gs),
-            gp=kwargs.get('gp', ConcreteSection.DEFAULT_gp),
-            As1=kwargs.get('As1', ConcreteSection.DEFAULT_As1),
-            As2=kwargs.get('As2', ConcreteSection.DEFAULT_As2),
-            Ap=kwargs.get('Ap', ConcreteSection.DEFAULT_Ap),
-            b=kwargs.get('b', ConcreteSection.DEFAULT_b),
-            h=kwargs.get('h', ConcreteSection.DEFAULT_h),
-            ds1=kwargs.get('ds1', ConcreteSection.DEFAULT_ds1),
-            ds2=kwargs.get('ds2', ConcreteSection.DEFAULT_ds2),
-            dp=kwargs.get('dp', ConcreteSection.DEFAULT_dp),
-            N=kwargs.get('N', ConcreteSection.DEFAULT_N),
-            M=kwargs.get('M', ConcreteSection.DEFAULT_M)
-
+            fck=kwargs.get('fck', ConcreteSection.kwDefaults['fck']),
+            fyk=kwargs.get('fyk', ConcreteSection.kwDefaults['fyk']),
+            fpk=kwargs.get('fpk', ConcreteSection.kwDefaults['fpk']),
+            Es=kwargs.get('Es', ConcreteSection.kwDefaults['Es']),
+            Ep=kwargs.get('Ep', ConcreteSection.kwDefaults['Ep']),
+            s=kwargs.get('s', ConcreteSection.kwDefaults['s']),
+            prestress_time=kwargs.get('prestress_time', ConcreteSection.kwDefaults['prestress_time']),
+            gc=kwargs.get('gc', ConcreteSection.kwDefaults['gc']),
+            gs=kwargs.get('gs', ConcreteSection.kwDefaults['gs']),
+            gp=kwargs.get('gp', ConcreteSection.kwDefaults['gp']),
+            As1=kwargs.get('As1', ConcreteSection.kwDefaults['As1']),
+            As2=kwargs.get('As2', ConcreteSection.kwDefaults['As2']),
+            Ap=kwargs.get('Ap', ConcreteSection.kwDefaults['Ap']),
+            b=kwargs.get('b', ConcreteSection.kwDefaults['b']),
+            h=kwargs.get('h', ConcreteSection.kwDefaults['h']),
+            ds1=kwargs.get('ds1', ConcreteSection.kwDefaults['ds1']),
+            ds2=kwargs.get('ds2', ConcreteSection.kwDefaults['ds2']),
+            dp=kwargs.get('dp', ConcreteSection.kwDefaults['dp']),
+            N=kwargs.get('N', ConcreteSection.kwDefaults['N']),
+            M=kwargs.get('M', ConcreteSection.kwDefaults['M'])
         )
 
     def __str__(self):
@@ -135,4 +134,6 @@ if __name__ == "__main__":
         M=-710E6
     )
 
-    print(beam.__dict__)
+    print(beam.__dict__)  # previous
+    beam.set(None)
+    print(beam.__dict__)  # default

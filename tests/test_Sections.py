@@ -1,6 +1,6 @@
 import unittest
 from StructEng.class_RectConcSect import RectConcSect
-#gitfrom StructEng.class_TConcSect import TConcSect
+#from StructEng.class_TConcSect import TConcSect
 
 
 class TestConcSect(unittest.TestCase):
@@ -22,7 +22,7 @@ class TestConcSect(unittest.TestCase):
         self.assertTrue(2.5649 < self.RectBeam_default.fctm() < 2.5650)
         self.RectBeam_default.fck = 60
         self.assertTrue(4.3547 < self.RectBeam_default.fctm() < 4.3548)
-        self.RectBeam_default.set_DEFAULT()
+        self.RectBeam_default.set(None)
 
     def test_fctm_t_returns_correct_value(self):
         self.assertEqual(self.RectBeam_default.fctm_t(), self.RectBeam_default.Bcc() * self.RectBeam_default.fctm())
@@ -61,12 +61,21 @@ class TestRectSect(unittest.TestCase):
         'M' : -710E6
     }
     RectBeam = RectConcSect(**kwargs)
+    RectBeam_defaut = RectConcSect()
 
     def test_RectConcSect_created_correctly(self):
         self.assertIsInstance(self.RectBeam, RectConcSect)
         for key, value in self.kwargs.items():
             self.assertIn(key, self.RectBeam.__dict__)
             self.assertEqual(value, self.RectBeam.__dict__[key])
+
+    def test_set_works_correctly(self):
+        current_attrs = self.RectBeam.__dict__
+        self.RectBeam.set(None)
+        self.assertEqual(self.RectBeam.__dict__, self.RectBeam_defaut.__dict__)
+
+        self.RectBeam.set(self.kwargs)
+        self.assertEqual(self.RectBeam.__dict__, current_attrs)
 
     def test_bruteArea_returns_correct_value(self):
         self.assertEqual(self.RectBeam.bruteArea(), self.kwargs['h'] * self.kwargs['b'])

@@ -4,27 +4,28 @@ from StructEng.class_Section import Section
 
 
 class ConcreteSection(Section):
-
-    DEFAULT_fck = 25
-    DEFAULT_fyk = 500
-    DEFAULT_fpk = 1860
-    DEFAULT_Es = 21E4
-    DEFAULT_Ep = 195E3
-    DEFAULT_s = 0.2
-    DEFAULT_prestress_time = 5
-    DEFAULT_gc = 1.5
-    DEFAULT_gs = 1.15
-    DEFAULT_gp = 1.15
-    DEFAULT_As1 = 0
-    DEFAULT_As2 = 0
-    DEFAULT_Ap = 0
-    DEFAULT_b = 500
-    DEFAULT_h = 1000
-    DEFAULT_ds1 = 50
-    DEFAULT_ds2 = DEFAULT_h - DEFAULT_ds1
-    DEFAULT_dp = DEFAULT_h - 150
-    DEFAULT_N = 0
-    DEFAULT_M = 0
+    kwDefaults = {
+        'fck' : 25,
+        'fyk' : 500,
+        'fpk' : 1860,
+        'Es' : 21E4,
+        'Ep' : 195E3,
+        's' : 0.2,
+        'prestress_time' : 5,
+        'gc' : 1.5,
+        'gs' : 1.15,
+        'gp' : 1.15,
+        'As1' : 0,
+        'As2' : 0,
+        'Ap' : 0,
+        'b' : 500,
+        'h' : 1000,
+        'ds1' : 50,
+        'ds2' : 950,
+        'dp' : 850,
+        'N' : 0,
+        'M' : 0
+    }
 
     def __init__(self, **kwargs):
         #MATERIAL
@@ -102,51 +103,30 @@ class ConcreteSection(Section):
         """
         return str
 
-    def set_DEFAULT(self):
-        """set all class attributes to defaults"""
+    def __upd_dep_attrs(self):
+        """ updates all dependent attributes"""
 
-        self.fck = self.DEFAULT_fck
-        self.fyk = self.DEFAULT_fyk
-        self.fpk = self.DEFAULT_fpk
         self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3
-        self.Es = self.DEFAULT_Es
-        self.Ep = self.DEFAULT_Ep
         self.ns = self.Es / self.Ecm
         self.np = self.Ep / self.Ecm
-        self.s = self.DEFAULT_s
-        self.prestress_time = self.DEFAULT_prestress_time
-
-        # MATERIAL COEFFICIENTS
-        self.gc = self.DEFAULT_gc
-        self.gs = self.DEFAULT_gs
-        self.gp = self.DEFAULT_gp
-
-        # REINFORCEMENT AREA
-        self.As1 = self.DEFAULT_As1
-        self.As2 = self.DEFAULT_As2
-        self.Ap = self.DEFAULT_Ap
-
-        # DIMENSIONS
-        self.b = self.DEFAULT_b
-        self.h = self.DEFAULT_h
-
-        # REINFORCEMENT POSITIONS
-        self.ds1 = self.DEFAULT_ds1
-        self.ds2 = self.DEFAULT_ds2
-        self.dp = self.DEFAULT_dp
-        self.dc = 0
-
-        # HOMOGENIZED SECTIONS
         self.hmgSect = self.hmgSection()
+        self.crv = self.k() # CURVATURE
+        self.epsilon_c0 = self.eps_0() # TOP FIBRE'S STRAIN
 
-        # LOADS
-        self.N = self.DEFAULT_N
-        self.M = self.DEFAULT_M
+    def set(self, kwargs):
+        """sets attributes to the values passed in a dict"""
 
-        # STRAIN
-        self.crv = self.k()  # CURVATURE
-        self.epsilon_c0 = self.eps_0()  # TOP FIBRE'S STRAIN
+        if kwargs != None:
+            for key in kwargs:
+                self.__dict__[key] = kwargs[key]
 
+        else:
+            for key in self.kwDefaults:
+                self.__dict__[key] = self.kwDefaults[key]
+
+        self.__upd_dep_attrs()
+
+#-------------ABSTRACT METHODS--------------
     @abstractmethod
     def hmgSection(self):
         """dictionary {area, first moment of inertia, second moment of inertia}
