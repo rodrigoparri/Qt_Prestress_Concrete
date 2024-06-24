@@ -102,33 +102,31 @@ class TestRectSect(unittest.TestCase):
         self.assertEqual(self.RectBeam.np, np)
 
     def test_hmgA_returns_correct_values(self):
+        self.RectBeam.set(self.kwargs)
         hmgA = self.RectBeam.bruteArea() + (self.kwargs['As1'] + self.kwargs['As2']) * (self.RectBeam.ns - 1) \
         + self.kwargs['Ap'] * (self.RectBeam.np - 1)
+        #print(hmgA)
         self.assertEqual(self.RectBeam.hmgSect['A'], hmgA)
 
     def test_hmgQ_returns_correct_values(self):
+        self.RectBeam.set(self.kwargs)
         hmgQA = self.RectBeam.bruteArea() * self.kwargs['h'] / 2
         hmgQAs = (self.kwargs['As1'] * self.kwargs['ds1'] + self.kwargs['As2'] * self.kwargs['ds2']) \
         * (self.RectBeam.ns - 1)
         hmgQAp = self.kwargs['Ap'] * (self.RectBeam.np - 1) * self.kwargs['dp']
         hmgQ = hmgQA + hmgQAs + hmgQAp
+        #print(hmgQ)
         self.assertEqual(self.RectBeam.hmgSect['Q'], hmgQ)
 
     def test_hmgI_returns_correct_values(self):
+        self.RectBeam.set(self.kwargs)
         hmgIA = self.RectBeam.Ix(self.kwargs['h'] / 2)
         hmgIAs1 = self.kwargs['As1'] * (self.RectBeam.ns - 1) * pow(self.kwargs['ds1'], 2)
         hmgIAs2 = self.kwargs['As2'] * (self.RectBeam.ns - 1) * pow(self.kwargs['ds2'], 2)
         hmgIAp = self.kwargs['Ap'] * (self.RectBeam.np - 1) * pow(self.kwargs['dp'], 2)
         hmgI = hmgIA + hmgIAs1 + hmgIAs2 + hmgIAp
+        #print(hmgI)
         self.assertEqual(self.RectBeam.hmgSect['I'], hmgI)
-
-    def test_mangelTensionLimit_returns_correctly(self):
-       # self.RectBeam.set(self.kwargs)
-       # self.assertFalse(self.RectBeam.magnelTensionLimit(330, 1000))
-#
-       # self.RectBeam.set({'h':1500, 'dp':1000})
-       # self.assertTrue(self.RectBeam.magnelTensionLimit(330, 1000))
-        pass
 
     def test_k_return_correct_value(self):
         self.RectBeam.set({'h':800, 'b':300, 'As1':900, 'As2':1800, 'Ap':1000, 'ds1':60, 'ds2':740, 'N':1350,
@@ -141,7 +139,38 @@ class TestRectSect(unittest.TestCase):
         self.RectBeam.set(self.kwargs)
 
     def test_eps_0_returns_correct_value(self):
-        pass
+        self.RectBeam.set(self.kwargs)
+        num = self.RectBeam.hmgSect['Q'] * self.RectBeam.M - self.RectBeam.hmgSect['I'] * self.RectBeam.N
+        dem = self.RectBeam.Ecm * (self.RectBeam.hmgSect['Q'] ** 2 - self.RectBeam.hmgSect['A'] * self.RectBeam.hmgSect['I'])
+        eps = num / dem
+        #print(eps)
+        self.assertEqual(self.RectBeam.eps_0(), eps)
+
+    def test_eps_y_returns_correct(self):
+        self.RectBeam.set(self.kwargs)
+        eps = self.RectBeam.epsilon_c0 + self.RectBeam.crv * self.RectBeam.h
+        #print(eps)
+        self.assertEqual(self.RectBeam.eps(self.RectBeam.h), eps)
+
+    def test_stress_returns_correct_value(self):
+        self.RectBeam.set(self.kwargs)
+        stress_o = self.RectBeam.eps(0) * self.RectBeam.Ecm
+        stress_h = self.RectBeam.eps(self.RectBeam.h) * self.RectBeam.Ecm
+        #print(stress_o)
+        #print(stress_h)
+
+        self.assertEqual(self.RectBeam.stress(0), stress_o)
+        self.assertEqual(self.RectBeam.stress(self.RectBeam.h), stress_h)
+
+    def test_mangelTensionLimit_returns_correctly(self):
+        Mi = 330
+        Mf = 1000
+
+        self.RectBeam.set(self.kwargs)
+        self.assertFalse(self.RectBeam.magnelTensionLimit(Mi, Mf))
+
+        self.RectBeam.set({'h':1500, 'dp':1000})
+        self.assertTrue(self.RectBeam.magnelTensionLimit(Mi, Mf))
 
 if __name__=='__main__':
     unittest.main()
