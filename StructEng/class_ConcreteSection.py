@@ -201,7 +201,10 @@ class ConcreteSection(Section):
         dem = self.Ecm * (pow(self.hmgSect['Q'], 2) - self.hmgSect['A'] * self.hmgSect['I'])
         return num / dem
 
-#----------MODULOS RESITENTES------------
+    def eps(self, y):
+        return self.epsilon_c0 + self.crv * y
+
+#----------SECTION MODULUS------------
     def Wx01(self) -> float(): #text
         """elastic section modulus considering the inertia from the centroid to the
         top fibre and the distance from the centroid to the top fibre"""
