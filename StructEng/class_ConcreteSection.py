@@ -202,9 +202,11 @@ class ConcreteSection(Section):
         return num / dem
 
     def eps(self, y):
+        """strain in any point y to section's height"""
         return self.epsilon_c0 + self.crv * y
 
     def stress(self, y):
+        """stress in any point y to section's height"""
         return self.eps(y) * self.Ecm
 
 #----------SECTION MODULUS------------
