@@ -204,6 +204,9 @@ class ConcreteSection(Section):
     def eps(self, y):
         return self.epsilon_c0 + self.crv * y
 
+    def stress(self, y):
+        return self.eps(y) * self.Ecm
+
 #----------SECTION MODULUS------------
     def Wx01(self) -> float(): #text
         """elastic section modulus considering the inertia from the centroid to the
