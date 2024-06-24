@@ -138,17 +138,6 @@ class ConcreteSection(Section):
         from the top fibre"""
         pass
 
-    @abstractmethod
-    def magnelTensionLimit(self, Mi: float, Mf: float):
-        """
-        checks if a section meets tension limits according to magnel diagrams.
-        this is a short-term check.
-        :param Mi: mm*N initial moment (at the instant of prestress)
-        :param Mf: mm*N complete moment under service loads
-        """
-        pass
-
-
 #------------CONCRETE METHODS---------------------
     def Bcc(self):
         """time dependent scalar that reduces concrete strength for a time t
@@ -208,6 +197,29 @@ class ConcreteSection(Section):
     def stress(self, y):
         """stress in any point y to section's height"""
         return self.eps(y) * self.Ecm
+
+    def magnelTensionLimit(self, Mi: float, Mf: float):
+        """checks if a section meets tension limits according to spanish
+        structural code. This is a short-term check. No cracking is taken into account.
+        :param Mi: mm*N initial moment (at the instant of prestress)
+        :param Mf: mm*N complete moment under service loads
+        """
+        # initial load case stress
+        self.M = Mi
+        init_top_stress = self.stress(0)
+        init_bottom_stress = self.stress(self.h)
+
+        # final load case stress
+        self.M = Mf
+        final_top_stress = self.stress(0)
+        final_bottom_stress = self.stress(self.h)
+
+        init_top_check = -0.45 * self.fck_t() < init_top_stress < self.fctm_t()
+        init_bottom_check = -0.45 * self.fck_t() < init_bottom_stress < self.fctm_t()
+        final_top_check = -0.45 * self.fck() < final_top_stress < self.fctm()
+        final_bottpom_check = -0.45 * self.fck() < final_bottom_stress < self.fctm()
+
+        return init_top_check and init_bottom_check and final_top_check and final_bottpom_check
 
 #----------SECTION MODULUS------------
     def Wx01(self) -> float(): #text
