@@ -32,7 +32,7 @@ class ConcreteSection(Section):
         self.fck = kwargs.get('fck')
         self.fyk = kwargs.get('fyk')
         self.fpk = kwargs.get('fpk')
-        self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3
+        self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3  # secant Young's modulus
         self.Es = kwargs.get('Es') #210,000Mpa
         self.Ep = kwargs.get('Ep') #195,000Mpa
         self.ns = self.Es / self.Ecm
@@ -138,6 +138,8 @@ class ConcreteSection(Section):
         from the top fibre"""
         pass
 
+
+
 #------------CONCRETE METHODS---------------------
     def Bcc(self):
         """time dependent scalar that reduces concrete strength for a time t
@@ -198,7 +200,7 @@ class ConcreteSection(Section):
         """stress in any point y to section's height"""
         return self.eps(y) * self.Ecm
 
-    def magnelTensionLimit(self, Mi: float, Mf: float):
+    def magnel_stress_limit(self, Mi: float, Mf: float):
         """checks if a section meets tension limits according to spanish
         structural code. This is a short-term check. No cracking is taken into account.
         :param Mi: mm*N initial moment (at the instant of prestress)

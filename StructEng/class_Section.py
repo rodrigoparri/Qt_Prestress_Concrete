@@ -17,6 +17,30 @@ class Section(ABC):
         pass
 
     @abstractmethod
+    def A_y(self, y):
+        """area of a portion of the section defined between the top and an arbitrary
+        horizontal axis at distance y from the top
+        :param y: distance from the top to the axis that limits the section's portion
+        """
+        pass
+
+    @abstractmethod
+    def Q_y(self, y):
+        """static moment of area of a portion of the section defined between the top and an arbitrary
+        horizontal axis at distance y from the top
+        :param y: distance from the top to the axis that limits the section's portion
+        """
+        pass
+
+    @abstractmethod
+    def ycentroid_y(self, y):
+        """ y coordinate of the centroid of a portion of the section defined between the top and an arbitrary
+        horizontal axis at distance y from the top
+        :param y: distance from the top to the axis that limits the section's portion
+        """
+        pass
+
+    @abstractmethod
     def xcentroid(self):
         """x position of the section's centroid from the left side"""
         pass

@@ -162,15 +162,15 @@ class TestRectSect(unittest.TestCase):
         self.assertEqual(self.RectBeam.stress(0), stress_o)
         self.assertEqual(self.RectBeam.stress(self.RectBeam.h), stress_h)
 
-    def test_mangelTensionLimit_returns_correctly(self):
+    def test_mangel_stress_Limit_returns_correctly(self):
         Mi = 330
         Mf = 1000
 
         self.RectBeam.set(self.kwargs)
-        self.assertFalse(self.RectBeam.magnelTensionLimit(Mi, Mf))
+        self.assertFalse(self.RectBeam.magnel_stress_limit(Mi, Mf))
 
         self.RectBeam.set({'h':1500, 'dp':1000})
-        self.assertTrue(self.RectBeam.magnelTensionLimit(Mi, Mf))
+        self.assertTrue(self.RectBeam.magnel_stress_limit(Mi, Mf))
 
 if __name__=='__main__':
     unittest.main()

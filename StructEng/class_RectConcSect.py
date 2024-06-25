@@ -67,6 +67,15 @@ class RectConcSect(ConcreteSection):
     def Ix(self, d):
         return self.Ix0() + self.bruteArea() * pow(d, 2)
 
+    def A_y(self, y):
+        return self.b * y
+
+    def Q_y(self, y):
+        return self.b * pow(y, 2)
+
+    def ycentroid_y(self, y):
+        return y / 2
+
     def hmgSection(self):
 
         hmg = dict()
@@ -95,7 +104,7 @@ class RectConcSect(ConcreteSection):
         hmg['I'] = hmgI
         return hmg
 
-    def magnelTensionLimit(self, Mi: float, Mf: float) -> bool():
+    def magnel_stress_limit(self, Mi: float, Mf: float) -> bool():
         Ac = self.bruteArea()
         Wx1 = self.Wx01() # top fibre
         Wx2 = self.Wx02()
@@ -134,6 +143,6 @@ if __name__ == "__main__":
         M=-710E6
     )
 
-    print(beam.magnelTensionLimit(330, 1000))
+    print(beam.magnel_stress_limit(330, 1000))
     beam.set({'h':1500, 'dp':1000})
-    print(beam.magnelTensionLimit(330, 1000))
+    print(beam.magnel_stress_limit(330, 1000))
