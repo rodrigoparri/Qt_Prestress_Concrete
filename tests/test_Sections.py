@@ -37,6 +37,7 @@ class TestConcSect(unittest.TestCase):
     def test_e_returns_correct_value(self):
         self.assertEqual(self.RectBeam_default.e(), self.RectBeam_default.dp - self.RectBeam_default.ycentroid())
 
+
 class TestRectSect(unittest.TestCase):
     kwargs = {
         'fck' : 20,
@@ -90,7 +91,7 @@ class TestRectSect(unittest.TestCase):
         self.assertEqual(self.RectBeam.Ix0(), self.kwargs['b'] * pow(self.kwargs['h'], 3) / 12)
 
     def test_Ix_returns_correct_values(self):
-        self.assertEqual(self.RectBeam.Ix(self.kwargs['h'] / 2), self.RectBeam.Ix0() + self.RectBeam.bruteArea() \
+        self.assertEqual(self.RectBeam.Ix_top(), self.RectBeam.Ix0() + self.RectBeam.bruteArea() \
                                                                  * pow(self.kwargs['h'] / 2, 2))
 
     def test_ns_is_correct(self):
@@ -120,7 +121,7 @@ class TestRectSect(unittest.TestCase):
 
     def test_hmgI_returns_correct_values(self):
         self.RectBeam.set(self.kwargs)
-        hmgIA = self.RectBeam.Ix(self.kwargs['h'] / 2)
+        hmgIA = self.RectBeam.Ix_top()
         hmgIAs1 = self.kwargs['As1'] * (self.RectBeam.ns - 1) * pow(self.kwargs['ds1'], 2)
         hmgIAs2 = self.kwargs['As2'] * (self.RectBeam.ns - 1) * pow(self.kwargs['ds2'], 2)
         hmgIAp = self.kwargs['Ap'] * (self.RectBeam.np - 1) * pow(self.kwargs['dp'], 2)

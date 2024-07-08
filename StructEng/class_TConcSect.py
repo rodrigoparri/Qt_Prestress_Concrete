@@ -2,48 +2,26 @@ from StructEng.class_ConcreteSection import ConcreteSection
 
 
 class TConcSect(ConcreteSection):
-    kwDefaults = {
+    kwTSectDefaults = {
         't1': 200,  # FLANGE THICKNESS
         't': 250  # WEB THICKNESS
     }
 
     def __init__(self, **kwargs):
-        self.t1 = kwargs.get('t1', TConcSect.kwDefaults['t1'])  # FLANGE THICKNESS
-        self.t = kwargs.get('t', TConcSect.kwDefaults['t'])  # WEB THICKNESS
-        super().__init__(
-            fck=kwargs.get('fck', ConcreteSection.kwDefaults['fck']),
-            fyk=kwargs.get('fyk', ConcreteSection.kwDefaults['fyk']),
-            fpk=kwargs.get('fpk', ConcreteSection.kwDefaults['fpk']),
-            Es=kwargs.get('Es', ConcreteSection.kwDefaults['Es']),
-            Ep=kwargs.get('Ep', ConcreteSection.kwDefaults['Ep']),
-            s=kwargs.get('s', ConcreteSection.kwDefaults['s']),
-            prestress_time=kwargs.get('prestress_time', ConcreteSection.kwDefaults['prestress_time']),
-            gc=kwargs.get('gc', ConcreteSection.kwDefaults['gc']),
-            gs=kwargs.get('gs', ConcreteSection.kwDefaults['gs']),
-            gp=kwargs.get('gp', ConcreteSection.kwDefaults['gp']),
-            As1=kwargs.get('As1', ConcreteSection.kwDefaults['As1']),
-            As2=kwargs.get('As2', ConcreteSection.kwDefaults['As2']),
-            Ap=kwargs.get('Ap', ConcreteSection.kwDefaults['Ap']),
-            b=kwargs.get('b', ConcreteSection.kwDefaults['b']),
-            h=kwargs.get('h', ConcreteSection.kwDefaults['h']),
-            ds1=kwargs.get('ds1', ConcreteSection.kwDefaults['ds1']),
-            ds2=kwargs.get('ds2', ConcreteSection.kwDefaults['ds2']),
-            dp=kwargs.get('dp', ConcreteSection.kwDefaults['dp']),
-            N=kwargs.get('N', ConcreteSection.kwDefaults['N']),
-            M=kwargs.get('M', ConcreteSection.kwDefaults['M'])
-        )
+        self.t1 = kwargs.get('t1', TConcSect.kwTSectDefaults['t1'])  # FLANGE THICKNESS
+        self.t = kwargs.get('t', TConcSect.kwTSectDefaults['t'])  # WEB THICKNESS
+        super().__init__(**kwargs)
+
+    def __str__(self):
+        str =  f"""
+        -----------------------PARTICULAR PROPERTIES-----------------------------------------
+        t1: flange thickness.......................................................{self.fck} mm
+        t: web thickness...........................................................{self.fck} mm
+        """
+        return super().__str__() + str
 
     def bruteArea(self):
         return (self.b - self.t) * self.t1 + self.h * self.t
-
-    def A_y(self, y):
-        pass
-
-    def Q_y(self, y):
-        pass
-
-    def ycentroid_y(self, y):
-        pass
 
     def xcentroid(self):
         return self.b / 2
@@ -67,5 +45,58 @@ class TConcSect(ConcreteSection):
 
         return Ifx0 + Ifst + Iwxo + IWst
 
-    def Ix(self, d: float):
-        pass
+    def Ix_top(self):
+        top_rect = self.b * pow(self.t1, 3) / 3
+        bottom_rect = self.t * (pow(self.h, 3) - pow(self.t1, 3)) / 3
+        return top_rect + bottom_rect
+
+    def A_y(self, y):
+        if y < self.t1:
+            return self.b * y
+        else:
+            return self.b * self.t1 + self.t * (y - self.t1)
+
+    def Q_y(self, y):
+        if y < self.t1:
+            return self.b * pow(y,2) * 0.5
+        else:
+            return self.b * pow(self.t1,2) * 0.5 + self.t * pow(y - self.t, 2)
+
+    def ycentroid_y(self, y):
+        return self.Q_y(y) / self.A_y(y)
+
+    def hmgSection(self):
+        hmg = dict()
+
+        y = self.y_cen
+
+        hmgA = self.Ac
+        hmgAc1 = self.As1 * (self.ns - 1)
+        hmgAc2 = self.As2 * (self.ns - 1)
+        hmgAcp = self.Ap * (self.np - 1)
+        hmgArea = hmgA + hmgAc1 + hmgAc2 + hmgAcp
+
+        hmgQA = hmgA * y
+        hmgQc1 = hmgAc1 * self.ds1
+        hmgQc2 = hmgAc2 * self.ds2
+        hmgQcp = hmgAcp * self.dp
+        hmgQ = hmgQA + hmgQc1 + hmgQc2 + hmgQcp
+
+        hmgIA = self.Ixt
+        hmgIc1 = hmgQc1 * self.ds1
+        hmgIc2 = hmgQc2 * self.ds2
+        hmgIcp = hmgQcp * self.dp
+        hmgI = hmgIA + hmgIc1 + hmgIc2 + hmgIcp
+        hmg['A'] = hmgArea
+        hmg['Q'] = hmgQ
+        hmg['I'] = hmgI
+        return hmg
+
+if __name__ == '__main__':
+    myTsect = TConcSect(b=250, h=500, t=80, t1=80, As2=2000)
+    print(myTsect.ycentroid())
+    print(myTsect.bruteArea())
+    print(myTsect.Ix0())
+    print(myTsect.Ix_top())
+    print(myTsect)
+

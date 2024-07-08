@@ -29,43 +29,47 @@ class ConcreteSection(Section):
 
     def __init__(self, **kwargs):
         #MATERIAL
-        self.fck = kwargs.get('fck')
-        self.fyk = kwargs.get('fyk')
-        self.fpk = kwargs.get('fpk')
+        self.fck = kwargs.get('fck', self.kwDefaults['fck'])
+        self.fyk = kwargs.get('fyk', self.kwDefaults['fyk'])
+        self.fpk = kwargs.get('fpk', self.kwDefaults['fpk'])
         self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3  # secant Young's modulus
-        self.Es = kwargs.get('Es') #210,000Mpa
-        self.Ep = kwargs.get('Ep') #195,000Mpa
+        self.Es = kwargs.get('Es', self.kwDefaults['Es']) #210,000Mpa
+        self.Ep = kwargs.get('Ep', self.kwDefaults['Ep']) #195,000Mpa
         self.ns = self.Es / self.Ecm
         self.np = self.Ep / self.Ecm
-        self.s = kwargs.get('s')
-        self.prestress_time = kwargs.get('prestress_time')
+        self.s = kwargs.get('s', self.kwDefaults['s'])
+        self.prestress_time = kwargs.get('prestress_time', self.kwDefaults['prestress_time'])
 
         #MATERIAL COEFFICIENTS
-        self.gc = kwargs.get('gc')
-        self.gs = kwargs.get('gs')
-        self.gp = kwargs.get('gp')
+        self.gc = kwargs.get('gc', self.kwDefaults['gc'])
+        self.gs = kwargs.get('gs', self.kwDefaults['gs'])
+        self.gp = kwargs.get('gp', self.kwDefaults['gp'])
 
         #REINFORCEMENT AREA
-        self.As1 = kwargs.get('As1')
-        self.As2 = kwargs.get('As2')
-        self.Ap = kwargs.get('Ap')
+        self.As1 = kwargs.get('As1', self.kwDefaults['As1'])
+        self.As2 = kwargs.get('As2', self.kwDefaults['As2'])
+        self.Ap = kwargs.get('Ap', self.kwDefaults['Ap'])
 
         #DIMENSIONS
-        self.b = kwargs.get('b')
-        self.h = kwargs.get('h')
+        self.b = kwargs.get('b', self.kwDefaults['b'])
+        self.h = kwargs.get('h', self.kwDefaults['h'])
+        self.y_cen = self.ycentroid()
+        self.Ac = self.bruteArea()
+        self.Ixo = self.Ix0()
+        self.Ixt = self.Ix_top()
 
         #REINFORCEMENT POSITIONS
-        self.ds1 = kwargs.get('ds1')
-        self.ds2 = kwargs.get('ds2')
-        self.dp = kwargs.get('dp')
+        self.ds1 = kwargs.get('ds1', self.kwDefaults['ds1'])
+        self.ds2 = kwargs.get('ds2', self.kwDefaults['ds2'])
+        self.dp = kwargs.get('dp', self.kwDefaults['dp'])
         self.dc = 0
 
         #HOMOGENIZED SECTIONS
         self.hmgSect = self.hmgSection()
 
         #LOADS
-        self.N = kwargs.get('N')
-        self.M = kwargs.get('M')
+        self.N = kwargs.get('N', self.kwDefaults['N'])
+        self.M = kwargs.get('M', self.kwDefaults['M'])
 
         #STRAIN
         self.crv = self.k() # CURVATURE
@@ -73,6 +77,7 @@ class ConcreteSection(Section):
 
     def __str__(self):
         str = f"""
+        -------------------------------MATERIALS------------------------------------------------
         fck: concrete characteristic strength......................................{self.fck} Mpa
         fck_t: concrete characteristic compression strength. t in days.............{self.fck_t()} Mpa
         fcm: average concrete compression strength.................................{self.fcm()} Mpa
@@ -95,12 +100,20 @@ class ConcreteSection(Section):
         As1: passive steel area in the compression part of the beam................{self.As1} mm2
         As2: passive steel area in the tension part of the beam....................{self.As2} mm2
         Ap: pre-stress steel area..................................................{self.Ap} mm2
+        
+        -------------------------------SECTION GEOMETRY-----------------------------------------
         b: width of the smallest bounding box that contains the section............{self.b} mm
         h: height of the smallest bounding box that contains the section...........{self.h} mm
+        y_cen: y coordinate of the centroid from the top fibre.....................{self.y_cen} mm
+        Ac: brute area of the section..............................................{self.Ac} mm2
+        Ixo: moment of inertia around axis through the centroid....................{self.Ixo} mm4
+        Ixt: moment of inertia around axis through the top fibre...................{self.Ixt} mm4
         ds1: distance from the top fibre to the centroid of As1....................{self.ds1} mm
         ds2: distance from the top fibre to the centroid of As1....................{self.ds2} mm
         dp: distance from the top fibre to the centroid of Ap......................{self.dp} mm
         homogenized_section:...........{self.hmgSect} mm2, mm3, mm4
+        
+        -------------------------------LOADS------------------------------------------------
         N: normal force applied in the section's centroid..........................{self.N} N
         M: total moment applied to the section.....................................{self.M} mm*N
         k: signed curvature of the section.........................................{self.crv} mm-1
@@ -114,6 +127,10 @@ class ConcreteSection(Section):
         self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3
         self.ns = self.Es / self.Ecm
         self.np = self.Ep / self.Ecm
+        self.y_cen = self.ycentroid()
+        self.Ac = self.bruteArea()
+        self.Ixo = self.Ix0()
+        self.Ixt = self.Ix_top()
         self.hmgSect = self.hmgSection()
         self.crv = self.k() # CURVATURE
         self.epsilon_c0 = self.eps_0() # TOP FIBRE'S STRAIN
@@ -137,8 +154,6 @@ class ConcreteSection(Section):
         """dictionary {area, first moment of inertia, second moment of inertia}
         from the top fibre"""
         pass
-
-
 
 #------------CONCRETE METHODS---------------------
     def Bcc(self):
@@ -176,7 +191,7 @@ class ConcreteSection(Section):
 
     def e(self):
         """distance from the centroid to the pre-tensioned steel centroid"""
-        return self.dp - self.ycentroid()
+        return self.dp - self.y_cen
 
 #-----------STRAIN SECTION METHODS ------------------
 
@@ -225,11 +240,11 @@ class ConcreteSection(Section):
 
 #----------SECTION MODULUS------------
     def Wx01(self) -> float(): #text
-        """elastic section modulus considering the inertia from the centroid to the
-        top fibre and the distance from the centroid to the top fibre"""
-        return self.Ix0() / self.ycentroid()
+        """elastic section modulus considering the inertia from the centroid
+         and the distance from the centroid to the top fibre"""
+        return self.Ix0() / self.y_cen
 
     def Wx02(self) ->float(): #test
-        """elastic section modulus considering the inertia from the centroid to the
-        top fibre and the distance from the centroid to the top fibre"""
-        return self.Ix0() / (self.h - self.ycentroid())
+        """elastic section modulus considering the inertia
+        and the distance from the centroid to the top fibre"""
+        return self.Ix0() / (self.h - self.y_cen)

@@ -63,10 +63,8 @@ class Section(ABC):
         pass
 
     @abstractmethod
-    def Ix(self, d: float):
-        """Moment of inertia af the original section (considered concrete-massive)
-        from an arbitrary axis parallel to the x-axis
-        :param d: mm distance from x-axis through the section's centroid"""
+    def Ix_top(self):
+        """Moment of inertia af the original section from the top fibre"""
         pass
 
     @staticmethod

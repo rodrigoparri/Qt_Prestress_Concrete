@@ -26,28 +26,7 @@ class RectConcSect(ConcreteSection):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(
-            fck=kwargs.get('fck', ConcreteSection.kwDefaults['fck']),
-            fyk=kwargs.get('fyk', ConcreteSection.kwDefaults['fyk']),
-            fpk=kwargs.get('fpk', ConcreteSection.kwDefaults['fpk']),
-            Es=kwargs.get('Es', ConcreteSection.kwDefaults['Es']),
-            Ep=kwargs.get('Ep', ConcreteSection.kwDefaults['Ep']),
-            s=kwargs.get('s', ConcreteSection.kwDefaults['s']),
-            prestress_time=kwargs.get('prestress_time', ConcreteSection.kwDefaults['prestress_time']),
-            gc=kwargs.get('gc', ConcreteSection.kwDefaults['gc']),
-            gs=kwargs.get('gs', ConcreteSection.kwDefaults['gs']),
-            gp=kwargs.get('gp', ConcreteSection.kwDefaults['gp']),
-            As1=kwargs.get('As1', ConcreteSection.kwDefaults['As1']),
-            As2=kwargs.get('As2', ConcreteSection.kwDefaults['As2']),
-            Ap=kwargs.get('Ap', ConcreteSection.kwDefaults['Ap']),
-            b=kwargs.get('b', ConcreteSection.kwDefaults['b']),
-            h=kwargs.get('h', ConcreteSection.kwDefaults['h']),
-            ds1=kwargs.get('ds1', ConcreteSection.kwDefaults['ds1']),
-            ds2=kwargs.get('ds2', ConcreteSection.kwDefaults['ds2']),
-            dp=kwargs.get('dp', ConcreteSection.kwDefaults['dp']),
-            N=kwargs.get('N', ConcreteSection.kwDefaults['N']),
-            M=kwargs.get('M', ConcreteSection.kwDefaults['M'])
-        )
+        super().__init__(**kwargs)
 
     def __str__(self):
         return super().__str__()
@@ -64,8 +43,8 @@ class RectConcSect(ConcreteSection):
     def Ix0(self):
         return pow(self.h, 3) * self.b / 12
 
-    def Ix(self, d):
-        return self.Ix0() + self.bruteArea() * pow(d, 2)
+    def Ix_top(self):
+        return self.b * pow(self.h, 3) / 3
 
     def A_y(self, y):
         return self.b * y
@@ -80,9 +59,9 @@ class RectConcSect(ConcreteSection):
 
         hmg = dict()
 
-        y = self.ycentroid()
+        y = self.y_cen
 
-        hmgA = self.bruteArea()
+        hmgA = self.Ac
         hmgAc1 = self.As1 * (self.ns - 1)
         hmgAc2 = self.As2 * (self.ns - 1)
         hmgAcp = self.Ap * (self.np - 1)
@@ -94,7 +73,7 @@ class RectConcSect(ConcreteSection):
         hmgQcp = hmgAcp * self.dp
         hmgQ = hmgQA + hmgQc1 + hmgQc2 + hmgQcp
 
-        hmgIA = self.Ix(y)
+        hmgIA = self.Ixt
         hmgIc1 = hmgQc1 * self.ds1
         hmgIc2 = hmgQc2 * self.ds2
         hmgIcp = hmgQcp * self.dp
@@ -105,7 +84,7 @@ class RectConcSect(ConcreteSection):
         return hmg
 
     def magnel_stress_limit(self, Mi: float, Mf: float) -> bool():
-        Ac = self.bruteArea()
+        Ac = self.Ac
         Wx1 = self.Wx01() # top fibre
         Wx2 = self.Wx02()
         Pe = self.N * self.e()
