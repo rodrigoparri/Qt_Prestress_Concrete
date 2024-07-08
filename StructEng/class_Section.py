@@ -16,6 +16,13 @@ class Section(ABC):
         """ Cross-section area calculation"""
         pass
 
+
+    #@abstractmethod
+    #def b_y(self):
+    #    """function that describes the width of the section as a function of y
+    #    with the origin at the top"""
+    #    pass
+
     @abstractmethod
     def A_y(self, y):
         """area of a portion of the section defined between the top and an arbitrary
