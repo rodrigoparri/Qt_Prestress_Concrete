@@ -233,8 +233,8 @@ class ConcreteSection(Section):
 
         init_top_check = -0.45 * self.fck_t() < init_top_stress < self.fctm_t()
         init_bottom_check = -0.45 * self.fck_t() < init_bottom_stress < self.fctm_t()
-        final_top_check = -0.45 * self.fck() < final_top_stress < self.fctm()
-        final_bottpom_check = -0.45 * self.fck() < final_bottom_stress < self.fctm()
+        final_top_check = -0.45 * self.fck < final_top_stress < self.fctm()
+        final_bottpom_check = -0.45 * self.fck < final_bottom_stress < self.fctm()
 
         return init_top_check and init_bottom_check and final_top_check and final_bottpom_check
 
