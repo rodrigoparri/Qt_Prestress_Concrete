@@ -1,6 +1,6 @@
 import unittest
 from StructEng.class_RectConcSect import RectConcSect
-#from StructEng.class_TConcSect import TConcSect
+from StructEng.class_TConcSect import TConcSect
 
 
 class TestConcSect(unittest.TestCase):
@@ -172,6 +172,52 @@ class TestRectSect(unittest.TestCase):
 
         self.RectBeam.set({'h':1500, 'dp':1000})
         self.assertTrue(self.RectBeam.magnel_stress_limit(Mi, Mf))
+
+
+class TestTsect(unittest.TestCase):
+
+    kwargs = {
+        'fck' : 20,
+        'fyk' : 400,
+        'fpk' : 1750,
+        'Es' : 200E3,
+        'Ep' : 195E3,
+        's' : 0.25,
+        'prestress_time' : 7,
+        'gc' : 1.5,
+        'gs' : 1.15,
+        'gp' : 1.15,
+        'As1' : 900,
+        'As2' : 1800,
+        'Ap' : 1000,
+        'b' : 300,
+        'h' : 800,
+        'ds1' : 60,
+        'ds2' : 740,
+        'dp' : 600,
+        'N' : -1350E3,
+        'M' : -710E6,
+        't1': 80,
+        't': 80
+    }
+    Tsect = TConcSect(**kwargs)
+    Tsect_defaut = TConcSect()
+
+    def test_RectConcSect_created_correctly(self):
+        self.assertIsInstance(self.Tsect, TConcSect)
+        for key, value in self.kwargs.items():
+            self.assertIn(key, self.Tsect.__dict__)
+            self.assertEqual(value, self.Tsect.__dict__[key])
+
+    def test_set_works_correctly(self):
+        current_attrs = self.Tsect.__dict__
+        self.Tsect.set(None)  #set to default
+        self.maxDiff = None
+        self.assertEqual(self.Tsect.__dict__, self.Tsect_defaut.__dict__)
+
+        self.Tsect.set(self.kwargs)
+        self.assertEqual(self.Tsect.__dict__, current_attrs)
+
 
 if __name__=='__main__':
     unittest.main()

@@ -83,21 +83,6 @@ class RectConcSect(ConcreteSection):
         hmg['I'] = hmgI
         return hmg
 
-    def magnel_stress_limit(self, Mi: float, Mf: float) -> bool():
-        Ac = self.Ac
-        Wx1 = self.Wx01() # top fibre
-        Wx2 = self.Wx02()
-        Pe = self.N * self.e()
-
-        #Magnel inequations
-        emptyTopFibre = 1.1 * self.N / Ac - (1.1 * Pe + Mi) / Wx1 <= self.fctm_t()
-        emptyBottomFibre = 1.1 * self.N / Ac + (1.1 * Pe + Mi) / Wx2 >= -0.45 * self.fck_t()
-        loadedTopFibre = 0.9 * self.N / Ac - (0.9 * Pe + Mf) / Wx1 >= -0.45 * self.fck
-        loadedBottomFibre = 0.9 * self.N / Ac + (0.9 * Pe + Mf) / Wx2 <= self.fctm()
-
-        return emptyTopFibre and emptyBottomFibre and loadedTopFibre and loadedBottomFibre
-
-
 if __name__ == "__main__":
     beam = RectConcSect(
         fck=20,

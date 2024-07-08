@@ -20,6 +20,16 @@ class TConcSect(ConcreteSection):
         """
         return super().__str__() + str
 
+    def set(self, kwargs):
+        if kwargs != None:
+            self.t1 = kwargs.get('t1', self.kwTSectDefaults['t1'])
+            self.t = kwargs.get('t', self.kwTSectDefaults['t'])
+        else:
+            self.t1 = self.kwTSectDefaults['t1']
+            self.t = self.kwTSectDefaults['t']
+
+        super().set(kwargs)
+
     def bruteArea(self):
         return (self.b - self.t) * self.t1 + self.h * self.t
 
