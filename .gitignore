@@ -8,4 +8,5 @@
 /src/__pycache__/
 /tests/__pycache__/
 
-
+# ignore external files
+/maple
