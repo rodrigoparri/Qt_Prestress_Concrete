@@ -54,9 +54,10 @@ class ConcreteSection(Section):
         self.b = kwargs.get('b', self.kwDefaults['b'])
         self.h = kwargs.get('h', self.kwDefaults['h'])
         self.Ac = self.bruteArea()
+        self.Qxt = self.Qx_top()
         self.y_cen = self.ycentroid()
-        self.Ixo = self.Ix0()
         self.Ixt = self.Ix_top()
+        self.Ixo = self.Ix0()
 
         #REINFORCEMENT POSITIONS
         self.ds1 = kwargs.get('ds1', self.kwDefaults['ds1'])
@@ -169,7 +170,10 @@ class ConcreteSection(Section):
         :param t: value of b(t2) corresponds with the value of b(y) at the END of the portion you want to
          calculate the area of
         """
-        return b * y + (t - b)/t2 * (pow(y, 2)/2 - t1*y)
+        if 0 < t2:
+            return b * y + (t - b)/t2 * (pow(y, 2)/2 - t1*y)
+        else:
+            return 0
 
     @staticmethod
     def Q_yg(y, b, t, t1, t2):
@@ -183,7 +187,10 @@ class ConcreteSection(Section):
         :param t: value of b(t2) corresponds with the value of b(y) at the END of the portion you want to
          calculate the static moment of
         """
-        return b*pow(y, 2)/2 + (t-b)/t2 * (pow(y, 3)/3 - t1*pow(y, 2)/2)
+        if 0 < t2:
+            return b*pow(y, 2)/2 + (t-b)/t2 * (pow(y, 3)/3 - t1*pow(y, 2)/2)
+        else:
+            return 0
 
     @staticmethod
     def I_yg(y, b, t, t1, t2):
@@ -197,8 +204,10 @@ class ConcreteSection(Section):
         :param t: value of b(t2) corresponds with the value of b(y) at the END of the portion you want to
          calculate the moment of inertia of
         """
-        return b*pow(y,3)/3 + (t-b)/t2 * (pow(y,4)/4 - t1*pow(y,3)/3)
-
+        if 0 < t2:
+            return b*pow(y,3)/3 + (t-b)/t2 * (pow(y,4)/4 - t1*pow(y,3)/3)
+        else:
+            return 0
 
 #------------CONCRETE METHODS---------------------
     def Bcc(self):
@@ -287,9 +296,9 @@ class ConcreteSection(Section):
     def Wx01(self) -> float(): #text
         """elastic section modulus considering the inertia from the centroid
          and the distance from the centroid to the top fibre"""
-        return self.Ix0() / self.y_cen
+        return self.Ixo / self.y_cen
 
     def Wx02(self) ->float(): #test
         """elastic section modulus considering the inertia
         and the distance from the centroid to the top fibre"""
-        return self.Ix0() / (self.h - self.y_cen)
+        return self.Ixo / (self.h - self.y_cen)

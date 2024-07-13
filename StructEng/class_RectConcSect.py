@@ -43,8 +43,14 @@ class RectConcSect(ConcreteSection):
     def Ix0(self):
         return pow(self.h, 3) * self.b / 12
 
+    def Qx_top(self):
+        return self.b * pow(self.h, 2) * 0.5
+
     def Ix_top(self):
         return self.b * pow(self.h, 3) / 3
+
+    def b_y(self, y):
+        return self.b
 
     def A_y(self, y):
         return self.b * y

@@ -17,11 +17,11 @@ class Section(ABC):
         pass
 
 
-    #@abstractmethod
-    #def b_y(self):
-    #    """function that describes the width of the section as a function of y
-    #    with the origin at the top"""
-    #    pass
+    @abstractmethod
+    def b_y(self, y):
+        """function that describes the width of the section as a function of y
+        with the origin at the top"""
+        pass
 
     @abstractmethod
     def A_y(self, y):
@@ -68,6 +68,10 @@ class Section(ABC):
         """Moment of inertia from the x-axis through the origin"""
         pass
 
+    @abstractmethod
+    def Qx_top(self):
+        """static moment af the original section from the top fibre"""
+        pass
     @abstractmethod
     def Ix_top(self):
         """Moment of inertia af the original section from the top fibre"""

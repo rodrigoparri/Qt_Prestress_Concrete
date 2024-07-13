@@ -2,6 +2,8 @@ import unittest
 from StructEng.class_RectConcSect import RectConcSect
 from StructEng.class_TConcSect import TConcSect
 
+from scipy.integrate import quad
+
 
 class TestConcSect(unittest.TestCase):
     RectBeam_default = RectConcSect()
@@ -197,6 +199,7 @@ class TestTsect(unittest.TestCase):
         'N' : -1350E3,
         'M' : -710E6,
         't1': 80,
+        't2': 80,
         't': 80
     }
     Tsect = TConcSect(**kwargs)
@@ -218,16 +221,12 @@ class TestTsect(unittest.TestCase):
         self.assertEqual(self.Tsect.__dict__, current_attrs)
 
     def test_bruteArea_returns_correct_value(self):
-        self.Tsect.set(self.kwargs)
-        area = self.kwargs['b'] * self.kwargs['t1'] + self.kwargs['t'] * (self.kwargs['h'] - self.kwargs['t1'])
-        self.assertEqual(self.Tsect.bruteArea(), area)
-
-        area = TConcSect.kwDefaults['b'] * TConcSect.kwTSectDefaults['t1'] + TConcSect.kwTSectDefaults['t'] * \
-               (TConcSect.kwDefaults['h'] - TConcSect.kwTSectDefaults['t1'])
-        self.assertEqual(self.Tsect_defaut.bruteArea(), area)
+        area = quad(self.Tsect.b_y, 0, self.Tsect.h)
+        error = abs(area[0] - self.Tsect.bruteArea())
+        self.assertTrue(error < 10, f'error: {error}')
 
     def test_xCentroid_returns_correct_value(self):
-        self.assertEqual(self.Tsect.xcentroid(), self.kwargs['b'] / 2)
+        self.assertEqual(self.Tsect.xcentroid(), self.Tsect.b / 2)
         self.assertEqual(self.Tsect_defaut.xcentroid(), TConcSect.kwDefaults['b'] / 2)
 
     def test_yCentroid_returns_correct_value(self):
@@ -235,8 +234,18 @@ class TestTsect(unittest.TestCase):
         self.assertEqual(self.Tsect_defaut.ycentroid(), TConcSect.kwDefaults['h'] / 2)
 
     def test_Ix0_returns_correct_value(self):
-        inertia =
+        inertia = self.Tsect.Ixt - self.Tsect.Ac * pow(self.Tsect.y_cen, 2)
         self.assertEqual(self.Tsect.Ix0(), inertia)
+
+    def test_Qx_top_returns_correct_value(self):
+        Q = quad(lambda y: y * self.Tsect.b_y(y), 0, self.Tsect.h)
+        error = abs(Q[0] - self.Tsect.Qx_top())
+        self.assertTrue(error < 100, f'error: {error}')
+
+    def test_Ix_top_returns_correct_value(self):
+        I = quad(lambda y: pow(y, 2) * self.Tsect.b_y(y), 0, self.Tsect.h)
+        error = abs(I[0] - self.Tsect.Ix_top())
+        self.assertTrue(error < 1000, f'error: {error}')
 
 
 if __name__=='__main__':
