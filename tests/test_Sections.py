@@ -90,10 +90,9 @@ class TestRectSect(unittest.TestCase):
     def test_Ix0_returns_correct_value(self):
         self.assertEqual(self.RectBeam.Ix0(), self.kwargs['b'] * pow(self.kwargs['h'], 3) / 12)
 
-    def test_Ix_returns_correct_values(self):
+    def test_Ix_top_returns_correct_values(self):
         self.assertEqual(self.RectBeam.Ix_top(), self.RectBeam.Ix0() + self.RectBeam.bruteArea() \
                                                                  * pow(self.kwargs['h'] / 2, 2))
-
     def test_ns_is_correct(self):
         ns = self.kwargs['Es'] / self.RectBeam.Ecm
         self.assertEqual(self.RectBeam.ns, ns)
@@ -217,6 +216,27 @@ class TestTsect(unittest.TestCase):
 
         self.Tsect.set(self.kwargs)
         self.assertEqual(self.Tsect.__dict__, current_attrs)
+
+    def test_bruteArea_returns_correct_value(self):
+        self.Tsect.set(self.kwargs)
+        area = self.kwargs['b'] * self.kwargs['t1'] + self.kwargs['t'] * (self.kwargs['h'] - self.kwargs['t1'])
+        self.assertEqual(self.Tsect.bruteArea(), area)
+
+        area = TConcSect.kwDefaults['b'] * TConcSect.kwTSectDefaults['t1'] + TConcSect.kwTSectDefaults['t'] * \
+               (TConcSect.kwDefaults['h'] - TConcSect.kwTSectDefaults['t1'])
+        self.assertEqual(self.Tsect_defaut.bruteArea(), area)
+
+    def test_xCentroid_returns_correct_value(self):
+        self.assertEqual(self.Tsect.xcentroid(), self.kwargs['b'] / 2)
+        self.assertEqual(self.Tsect_defaut.xcentroid(), TConcSect.kwDefaults['b'] / 2)
+
+    def test_yCentroid_returns_correct_value(self):
+        self.assertEqual(self.Tsect.ycentroid(), self.kwargs['h'] / 2)
+        self.assertEqual(self.Tsect_defaut.ycentroid(), TConcSect.kwDefaults['h'] / 2)
+
+    def test_Ix0_returns_correct_value(self):
+        inertia =
+        self.assertEqual(self.Tsect.Ix0(), inertia)
 
 
 if __name__=='__main__':

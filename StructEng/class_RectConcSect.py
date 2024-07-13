@@ -52,6 +52,9 @@ class RectConcSect(ConcreteSection):
     def Q_y(self, y):
         return self.b * pow(y, 2)
 
+    def I_y(self, y):
+        pass
+
     def ycentroid_y(self, y):
         return y / 2
 

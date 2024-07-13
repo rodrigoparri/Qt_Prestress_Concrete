@@ -53,8 +53,8 @@ class ConcreteSection(Section):
         #DIMENSIONS
         self.b = kwargs.get('b', self.kwDefaults['b'])
         self.h = kwargs.get('h', self.kwDefaults['h'])
-        self.y_cen = self.ycentroid()
         self.Ac = self.bruteArea()
+        self.y_cen = self.ycentroid()
         self.Ixo = self.Ix0()
         self.Ixt = self.Ix_top()
 
@@ -154,6 +154,51 @@ class ConcreteSection(Section):
         """dictionary {area, first moment of inertia, second moment of inertia}
         from the top fibre"""
         pass
+
+#-----------STATIC METHODS------------------------
+    @staticmethod
+    def A_yg(y, b, t, t1, t2):
+        """area inside a portion of the section where the function b(y) has constant slope != 0
+        up to a value y. the function b(y) for this portion is calculated as b*y + (t-b)/t2 * (y^2/2 - t1*y).
+        To calulate the area of a portion between t1 and t2 write __A_yg(t1+t2) - __A_yg(t1).
+        :param y: value you want to calculate the area of the section up to
+        :param t1: value of y at the START of the portion you want to calculate the area of
+        :param t2: length of the portion. The value of y at the END of the portion will be t1 + t2
+        :param b: value of b(t1) corresponds with the value of b(y) at the START of the portion you want to
+         calculate the area of
+        :param t: value of b(t2) corresponds with the value of b(y) at the END of the portion you want to
+         calculate the area of
+        """
+        return b * y + (t - b)/t2 * (pow(y, 2)/2 - t1*y)
+
+    @staticmethod
+    def Q_yg(y, b, t, t1, t2):
+        """ static moment of a portion of the section where b(y) has constant slope. Q(y) = Integral(x*b(y)dy)
+        this function calculates the value of such function Q(y) for a given y
+        :param y: value where you want to calculate the static moment of the section
+        :param t1: value of y at the START of the portion you want to calculate the static moment of
+        :param t2: length of the portion. The value of y at the END of the portion will be t1 + t2
+        :param b: value of b(t1) corresponds with the value of b(y) at the START of the portion you want to
+         calculate the static moment of
+        :param t: value of b(t2) corresponds with the value of b(y) at the END of the portion you want to
+         calculate the static moment of
+        """
+        return b*pow(y, 2)/2 + (t-b)/t2 * (pow(y, 3)/3 - t1*pow(y, 2)/2)
+
+    @staticmethod
+    def I_yg(y, b, t, t1, t2):
+        """ moment of inertia of a portion of the section  b(y) has constant slope. I(y) = Integral(x^2*b(y)dy)
+        this function calculates the value of such function I(y) for a given y
+        :param y: value where you want to calculate moment of inertia of the section
+        :param t1: value of y at the START of the portion you want to calculate the moment of inertia of
+        :param t2: length of the portion. The value of y at the END of the portion will be t1 + t2
+        :param b: value of b(t1) corresponds with the value of b(y) at the START of the portion you want to
+         calculate the moment of inertia of
+        :param t: value of b(t2) corresponds with the value of b(y) at the END of the portion you want to
+         calculate the moment of inertia of
+        """
+        return b*pow(y,3)/3 + (t-b)/t2 * (pow(y,4)/4 - t1*pow(y,3)/3)
+
 
 #------------CONCRETE METHODS---------------------
     def Bcc(self):

@@ -40,6 +40,12 @@ class Section(ABC):
         pass
 
     @abstractmethod
+    def I_y(self, y):
+        """moment of inertia of area of a portion of the section defined between the top and an arbitrary
+        horizontal axis at distance y from the top
+        :param y: distance from the top to the axis that limits the section's portion"""
+
+    @abstractmethod
     def ycentroid_y(self, y):
         """ y coordinate of the centroid of a portion of the section defined between the top and an arbitrary
         horizontal axis at distance y from the top
