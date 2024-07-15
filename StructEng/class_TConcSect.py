@@ -24,9 +24,11 @@ class TConcSect(ConcreteSection):
 
     def set(self, kwargs):
         if kwargs != None:
+            self.t2 = kwargs.get('t2', self.kwTSectDefaults['t2'])
             self.t1 = kwargs.get('t1', self.kwTSectDefaults['t1'])
             self.t = kwargs.get('t', self.kwTSectDefaults['t'])
         else:
+            self.t2 = self.kwTSectDefaults['t2']
             self.t1 = self.kwTSectDefaults['t1']
             self.t = self.kwTSectDefaults['t']
 
@@ -69,33 +71,6 @@ class TConcSect(ConcreteSection):
         I_3 = self.t * (pow(self.h, 3) - pow(self.t1 + self.t2, 3)) / 3
         return I_1 + I_2 + I_3
 
-    def hmgSection(self):
-        hmg = dict()
-
-        y = self.y_cen
-
-        hmgA = self.Ac
-        hmgAc1 = self.As1 * (self.ns - 1)
-        hmgAc2 = self.As2 * (self.ns - 1)
-        hmgAcp = self.Ap * (self.np - 1)
-        hmgArea = hmgA + hmgAc1 + hmgAc2 + hmgAcp
-
-        hmgQA = hmgA * y
-        hmgQc1 = hmgAc1 * self.ds1
-        hmgQc2 = hmgAc2 * self.ds2
-        hmgQcp = hmgAcp * self.dp
-        hmgQ = hmgQA + hmgQc1 + hmgQc2 + hmgQcp
-
-        hmgIA = self.Ixt
-        hmgIc1 = hmgQc1 * self.ds1
-        hmgIc2 = hmgQc2 * self.ds2
-        hmgIcp = hmgQcp * self.dp
-        hmgI = hmgIA + hmgIc1 + hmgIc2 + hmgIcp
-        hmg['A'] = hmgArea
-        hmg['Q'] = hmgQ
-        hmg['I'] = hmgI
-        return hmg
-
 #---------------- y DEPENDENT FUNCTIONS---------------------------
     def b_y(self, y):
         if 0 < y < self.t1:
@@ -127,14 +102,14 @@ class TConcSect(ConcreteSection):
             # value of Q(t1) used in integration result Q(y) - Q(t1)
             Q_t1 = ConcreteSection.Q_yg(self.t1, self.b, self.t, self.t1, self.t2)
             # value of Q(y) used in integration result Q(y) - Q(t1)
-            Qy = ConcreteSection.Q_yg(self.t1 + y, self.b, self.t, self.t1, self.t2)
-            return  self.b * self.t1 + Qy - Q_t1
+            Qy = ConcreteSection.Q_yg(y, self.b, self.t, self.t1, self.t2)
+            return self.b * pow(self.t1, 2) * 0.5 + Qy - Q_t1
         elif self.t1 + self.t2 < y < self.h:
             # value of Q(t1) used in integration result Q(y) - Q(t1)
             Q_t1 = ConcreteSection.Q_yg(self.t1, self.b, self.t, self.t1, self.t2)
             # value of Q(y) used in integration result Q(y) - Q(t1)
             Qy = ConcreteSection.Q_yg(self.t1 + self.t2, self.b, self.t, self.t1, self.t2)
-            return self.b * pow(self.t1, 2) * 0.5 + Q_t1 + Qy + self.t * pow(y - self.t, 2)
+            return self.b * pow(self.t1, 2) * 0.5 + Qy - Q_t1 + self.t * (pow(y, 2) - pow(self.t1 + self.t2, 2)) * 0.5
         else:
             raise ValueError
 

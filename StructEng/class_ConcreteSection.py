@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from math import exp, log
 from StructEng.class_Section import Section
 
@@ -65,7 +64,7 @@ class ConcreteSection(Section):
         self.dp = kwargs.get('dp', self.kwDefaults['dp'])
         self.dc = 0
 
-        #HOMOGENIZED SECTIONS
+        #HOMOGENIZED SECTION
         self.hmgSect = self.hmgSection()
 
         #LOADS
@@ -74,7 +73,7 @@ class ConcreteSection(Section):
 
         #STRAIN
         self.crv = self.k() # CURVATURE
-        self.epsilon_c0 = self.eps_0() # TOP FIBRE'S STRAIN
+        self.epsilon_c0 = self.eps_0()  # TOP FIBRE'S STRAIN
 
     def __str__(self):
         str = f"""
@@ -128,13 +127,14 @@ class ConcreteSection(Section):
         self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3
         self.ns = self.Es / self.Ecm
         self.np = self.Ep / self.Ecm
-        self.y_cen = self.ycentroid()
         self.Ac = self.bruteArea()
-        self.Ixo = self.Ix0()
+        self.Qxt = self.Qx_top()
         self.Ixt = self.Ix_top()
+        self.y_cen = self.ycentroid()
+        self.Ixo = self.Ix0()
         self.hmgSect = self.hmgSection()
-        self.crv = self.k() # CURVATURE
-        self.epsilon_c0 = self.eps_0() # TOP FIBRE'S STRAIN
+        self.crv = self.k()  # CURVATURE
+        self.epsilon_c0 = self.eps_0()  # TOP FIBRE'S STRAIN
 
     def set(self, kwargs):
         """sets attributes to the values passed in a dict"""
@@ -150,11 +150,35 @@ class ConcreteSection(Section):
         self.__upd_dep_attrs()
 
 #-------------ABSTRACT METHODS--------------
-    @abstractmethod
+    #@abstractmethod
     def hmgSection(self):
         """dictionary {area, first moment of inertia, second moment of inertia}
         from the top fibre"""
-        pass
+
+        hmg = dict()
+        hmgA = self.Ac
+        hmgAc1 = self.As1 * (self.ns - 1)
+        hmgAc2 = self.As2 * (self.ns - 1)
+        hmgAcp = self.Ap * (self.np - 1)
+        hmgArea = hmgA + hmgAc1 + hmgAc2 + hmgAcp
+
+        # brure section static moment
+        hmgQA = self.Qxt
+        # reinforcement static moment
+        hmgQc1 = hmgAc1 * self.ds1
+        hmgQc2 = hmgAc2 * self.ds2
+        hmgQcp = hmgAcp * self.dp
+        hmgQ = hmgQA + hmgQc1 + hmgQc2 + hmgQcp
+
+        hmgIA = self.Ixt
+        hmgIc1 = hmgQc1 * self.ds1
+        hmgIc2 = hmgQc2 * self.ds2
+        hmgIcp = hmgQcp * self.dp
+        hmgI = hmgIA + hmgIc1 + hmgIc2 + hmgIcp
+        hmg['A'] = hmgArea
+        hmg['Q'] = hmgQ
+        hmg['I'] = hmgI
+        return hmg
 
 #-----------STATIC METHODS------------------------
     @staticmethod
