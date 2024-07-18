@@ -47,10 +47,10 @@ class TConcSect(ConcreteSection):
         return self.b / 2
 
     def ycentroid(self):
-        return self.Qxt / self.Ac
+        return self.Q_xtop / self.Ac
 
     def Ix0(self):
-        return self.Ixt - self.Ac * pow(self.y_cen, 2)
+        return self.I_xtop - self.Ac * pow(self.y_cen, 2)
 
     def Qx_top(self):
         # top flange static moment

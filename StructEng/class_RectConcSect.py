@@ -89,7 +89,7 @@ if __name__ == "__main__":
         'M' : -710E6
     }
     beam = RectConcSect(**kwargs)
-
-    print(beam.magnel_stress_limit(330, 1000))
-    beam.set({'h':1500, 'dp':1000})
-    print(beam.magnel_stress_limit(330, 1000))
+    print(beam)
+    #print(beam.magnel_stress_limit(330, 1000))
+    #beam.set({'h':1500, 'dp':1000})
+    #print(beam.magnel_stress_limit(330, 1000))

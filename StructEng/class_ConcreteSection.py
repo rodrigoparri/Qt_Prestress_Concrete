@@ -29,15 +29,22 @@ class ConcreteSection(Section):
     def __init__(self, **kwargs):
         #MATERIAL
         self.fck = kwargs.get('fck', self.kwDefaults['fck'])
+        self.s = kwargs.get('s', self.kwDefaults['s'])  # cement type
+        self.prestress_time = kwargs.get('prestress_time', self.kwDefaults['prestress_time'])
+        self.B_cc = self.Bcc()
+        self.f_ckt = self.fck_t()  # time dependent characteristic strength
+        self.f_cm = self.fcm()  # average strength
+        self.f_cmt = self.fcm_t()  # time dependent average strength
+        self.f_ctm = self.fctm()  # average tension strength
+        self.f_ctmt = self.fctm_t()  # time dependent average tension strength
         self.fyk = kwargs.get('fyk', self.kwDefaults['fyk'])
         self.fpk = kwargs.get('fpk', self.kwDefaults['fpk'])
         self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3  # secant Young's modulus
+        self.E_cmt = self.Ecm_t()  # time dependent secant Young's modulus
         self.Es = kwargs.get('Es', self.kwDefaults['Es']) #210,000Mpa
         self.Ep = kwargs.get('Ep', self.kwDefaults['Ep']) #195,000Mpa
         self.ns = self.Es / self.Ecm
         self.np = self.Ep / self.Ecm
-        self.s = kwargs.get('s', self.kwDefaults['s'])
-        self.prestress_time = kwargs.get('prestress_time', self.kwDefaults['prestress_time'])
 
         #MATERIAL COEFFICIENTS
         self.gc = kwargs.get('gc', self.kwDefaults['gc'])
@@ -53,9 +60,9 @@ class ConcreteSection(Section):
         self.b = kwargs.get('b', self.kwDefaults['b'])
         self.h = kwargs.get('h', self.kwDefaults['h'])
         self.Ac = self.bruteArea()
-        self.Qxt = self.Qx_top()
+        self.Q_xtop = self.Qx_top()
         self.y_cen = self.ycentroid()
-        self.Ixt = self.Ix_top()
+        self.I_xtop = self.Ix_top()
         self.Ixo = self.Ix0()
 
         #REINFORCEMENT POSITIONS
@@ -78,18 +85,24 @@ class ConcreteSection(Section):
     def __str__(self):
         str = f"""
         -------------------------------MATERIALS------------------------------------------------
+        STRENGTH
         fck: concrete characteristic strength......................................{self.fck} Mpa
-        fck_t: concrete characteristic compression strength. t in days.............{self.fck_t()} Mpa
-        fcm: average concrete compression strength.................................{self.fcm()} Mpa
-        fcm_t: time-dependent average concrete compression strength................{self.fcm_t()} Mpa
-        fctm: average concrete tensile strength....................................{self.fctm()} Mpa
-        fctm_t: average time-dependent concrete tensile strength...................{self.fctm_t()} Mpa
+        fck_t: concrete characteristic compression strength. t in days.............{self.f_ckt} Mpa
+        fcm: average concrete compression strength.................................{self.f_cm} Mpa
+        fcm_t: time-dependent average concrete compression strength................{self.f_cmt} Mpa
+        fctm: average concrete tensile strength....................................{self.f_ctm} Mpa
+        fctm_t: average time-dependent concrete tensile strength...................{self.f_ctmt} Mpa
+        Bcc: time dependent scalar for time-dependent calculations.................{self.B_cc} -adim-
         fyk: passive steel characteristic strength.................................{self.fyk} Mpa
         fpk: pre-stress steel characteristic strength..............................{self.fpk} Mpa
+        
+        YOUNG'S MODULUS
         Ecm: concrete average Young's modulus......................................{self.Ecm} Mpa
-        Ecm_t: time-dependent secant concrete elastic modulus......................{self.Ecm_t()} Mpa
+        Ecm_t: time-dependent secant concrete elastic modulus......................{self.E_cmt} Mpa
         Es: passive steel Young's modulus..........................................{self.Es} Mpa
         Ep: pre-stress steel Young's modulus.......................................{self.Ep} Mpa
+        
+        MISCELLANEOUS
         ns: passive steel homogenization coefficient...............................{self.ns} -adim-
         np: pre-stress steel homogenization coefficient............................{self.np} -adim-
         s: cement type for time-dependent calculations (0.2, 0.25, 0.38)...........{self.s} -adim-
@@ -97,6 +110,8 @@ class ConcreteSection(Section):
         gc: concrete strength reduction coefficient................................{self.gc} -adim-
         gs: steel strength reduction coefficient...................................{self.gs} -adim-
         gp: pre-stress steel strength reduction coefficient........................{self.gp} -adim-
+        
+        REINFORECEMENT
         As1: passive steel area in the compression part of the beam................{self.As1} mm2
         As2: passive steel area in the tension part of the beam....................{self.As2} mm2
         Ap: pre-stress steel area..................................................{self.Ap} mm2
@@ -106,12 +121,13 @@ class ConcreteSection(Section):
         h: height of the smallest bounding box that contains the section...........{self.h} mm
         y_cen: y coordinate of the centroid from the top fibre.....................{self.y_cen} mm
         Ac: brute area of the section..............................................{self.Ac} mm2
+        Q_xtop: static moment from the top fibre...................................{self.Q_xtop} mm3 
         Ixo: moment of inertia around axis through the centroid....................{self.Ixo} mm4
-        Ixt: moment of inertia around axis through the top fibre...................{self.Ixt} mm4
+        I_xtop: moment of inertia around axis through the top fibre................{self.I_xtop} mm4
         ds1: distance from the top fibre to the centroid of As1....................{self.ds1} mm
         ds2: distance from the top fibre to the centroid of As1....................{self.ds2} mm
         dp: distance from the top fibre to the centroid of Ap......................{self.dp} mm
-        homogenized_section:...........{self.hmgSect} mm2, mm3, mm4
+        homogenized_section:....A: {self.hmgSect['A']} mm2, Q: {self.hmgSect['Q']} mm3, I: {self.hmgSect['I']} mm4
         
         -------------------------------LOADS------------------------------------------------
         N: normal force applied in the section's centroid..........................{self.N} N
@@ -124,12 +140,20 @@ class ConcreteSection(Section):
     def __upd_dep_attrs(self):
         """ updates all dependent attributes"""
 
+        self.B_cc = self.Bcc()
+        self.f_ckt = self.fck_t()
+        self.f_cm = self.fcm()
+        self.f_cm = self.fcm()  # average strength
+        self.f_cmt = self.fcm_t()  # time dependent average strength
+        self.f_ctm = self.fctm()  # average tension strength
+        self.f_ctmt = self.fctm_t()  # time dependent average tension strength
         self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3
+        self.E_cmt = self.Ecm_t()  # time dependent secant Young's modulus
         self.ns = self.Es / self.Ecm
         self.np = self.Ep / self.Ecm
         self.Ac = self.bruteArea()
-        self.Qxt = self.Qx_top()
-        self.Ixt = self.Ix_top()
+        self.Q_xtop = self.Qx_top()
+        self.I_xtop = self.Ix_top()
         self.y_cen = self.ycentroid()
         self.Ixo = self.Ix0()
         self.hmgSect = self.hmgSection()
@@ -150,35 +174,7 @@ class ConcreteSection(Section):
         self.__upd_dep_attrs()
 
 #-------------ABSTRACT METHODS--------------
-    #@abstractmethod
-    def hmgSection(self):
-        """dictionary {area, first moment of inertia, second moment of inertia}
-        from the top fibre"""
 
-        hmg = dict()
-        hmgA = self.Ac
-        hmgAc1 = self.As1 * (self.ns - 1)
-        hmgAc2 = self.As2 * (self.ns - 1)
-        hmgAcp = self.Ap * (self.np - 1)
-        hmgArea = hmgA + hmgAc1 + hmgAc2 + hmgAcp
-
-        # brure section static moment
-        hmgQA = self.Qxt
-        # reinforcement static moment
-        hmgQc1 = hmgAc1 * self.ds1
-        hmgQc2 = hmgAc2 * self.ds2
-        hmgQcp = hmgAcp * self.dp
-        hmgQ = hmgQA + hmgQc1 + hmgQc2 + hmgQcp
-
-        hmgIA = self.Ixt
-        hmgIc1 = hmgQc1 * self.ds1
-        hmgIc2 = hmgQc2 * self.ds2
-        hmgIcp = hmgQcp * self.dp
-        hmgI = hmgIA + hmgIc1 + hmgIc2 + hmgIcp
-        hmg['A'] = hmgArea
-        hmg['Q'] = hmgQ
-        hmg['I'] = hmgI
-        return hmg
 
 #-----------STATIC METHODS------------------------
     @staticmethod
@@ -246,26 +242,26 @@ class ConcreteSection(Section):
 
     def fcm_t(self):
         """time-dependent average concrete compression strength"""
-        return self.Bcc() * self.fcm()
+        return self.B_cc * self.f_cm
 
     def fctm(self):
         """average concrete tensile strength"""
         if self.fck <= 50:
             return 0.30 * pow(self.fck, 2 / 3)
         else:
-            return 2.12 * log(1 + self.fcm() * 0.1)
+            return 2.12 * log(1 + self.f_cm * 0.1)
 
     def fctm_t(self):
         """average time-dependent concrete tensile strength"""
-        return self.Bcc() * self.fctm()
+        return self.B_cc * self.f_ctm
 
     def fck_t(self):
         """time-dependent concrete characteristic compression strength. t in days"""
-        return self.Bcc() * self.fck
+        return self.B_cc * self.fck
 
     def Ecm_t(self):
         """time-dependent secant concrete elastic modulus"""
-        return pow(self.fcm_t() / self.fcm(), 0.3) * self.Ecm
+        return pow(self.f_cmt / self.f_cm, 0.3) * self.Ecm
 
     def e(self):
         """distance from the centroid to the pre-tensioned steel centroid"""
@@ -292,6 +288,35 @@ class ConcreteSection(Section):
     def stress(self, y):
         """stress in any point y to section's height"""
         return self.eps(y) * self.Ecm
+
+    def hmgSection(self):
+        """dictionary {area, first moment of inertia, second moment of inertia}
+        from the top fibre"""
+
+        hmg = dict()
+        hmgA = self.Ac
+        hmgAc1 = self.As1 * (self.ns - 1)
+        hmgAc2 = self.As2 * (self.ns - 1)
+        hmgAcp = self.Ap * (self.np - 1)
+        hmgArea = hmgA + hmgAc1 + hmgAc2 + hmgAcp
+
+        # brure section static moment
+        hmgQA = self.Q_xtop
+        # reinforcement static moment
+        hmgQc1 = hmgAc1 * self.ds1
+        hmgQc2 = hmgAc2 * self.ds2
+        hmgQcp = hmgAcp * self.dp
+        hmgQ = hmgQA + hmgQc1 + hmgQc2 + hmgQcp
+
+        hmgIA = self.I_xtop
+        hmgIc1 = hmgQc1 * self.ds1
+        hmgIc2 = hmgQc2 * self.ds2
+        hmgIcp = hmgQcp * self.dp
+        hmgI = hmgIA + hmgIc1 + hmgIc2 + hmgIcp
+        hmg['A'] = hmgArea
+        hmg['Q'] = hmgQ
+        hmg['I'] = hmgI
+        return hmg
 
     def magnel_stress_limit(self, Mi: float, Mf: float):
         """checks if a section meets tension limits according to spanish

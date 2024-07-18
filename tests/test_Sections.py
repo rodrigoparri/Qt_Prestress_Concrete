@@ -234,10 +234,10 @@ class TestTsect(unittest.TestCase):
         self.assertEqual(self.Tsect_defaut.xcentroid(), TConcSect.kwDefaults['b'] / 2)
 
     def test_yCentroid_returns_correct_value(self):  #INCORRECT TEST
-        self.assertEqual(self.Tsect.ycentroid(), self.Tsect.Qxt / self.Tsect.Ac)
+        self.assertEqual(self.Tsect.ycentroid(), self.Tsect.Q_xtop / self.Tsect.Ac)
 
     def test_Ix0_returns_correct_value(self):
-        inertia = self.Tsect.Ixt - self.Tsect.Ac * pow(self.Tsect.y_cen, 2)
+        inertia = self.Tsect.I_xtop - self.Tsect.Ac * pow(self.Tsect.y_cen, 2)
         self.assertEqual(self.Tsect.Ix0(), inertia)
 
     def test_Qx_top_returns_correct_value(self):
