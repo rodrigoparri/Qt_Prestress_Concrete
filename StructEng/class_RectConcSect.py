@@ -71,7 +71,7 @@ if __name__ == "__main__":
         'fyk': 400,
         'fpk': 1750,
         'Es': 200E3,
-        'Ep': 195E3,
+        'Ep': 200E3,
         's': 0.25,
         't': 7,
         'gc': 1.5,
@@ -88,8 +88,34 @@ if __name__ == "__main__":
         'N' : -1350E3,
         'M' : -710E6
     }
-    beam = RectConcSect(**kwargs)
-    print(beam)
-    #print(beam.magnel_stress_limit(330, 1000))
-    #beam.set({'h':1500, 'dp':1000})
-    #print(beam.magnel_stress_limit(330, 1000))
+    kwargs2 = {
+        'fck' : 20,
+        'fyk' : 400,
+        'fpk' : 1750,
+        'Es' : 200E3,
+        'Ep' : 195E3,
+        's' : 0.25,
+        'prestress_time' : 7,
+        'gc' : 1.5,
+        'gs' : 1.15,
+        'gp' : 1.15,
+        'As1' : 9000,
+        'As2' : 1800,
+        'Ap' : 1000,
+        'b' : 500,
+        'h' : 1000,
+        'ds1' : 60,
+        'ds2' : 740,
+        'dp' : 600,
+        'N' : -1350E3,
+        'M' : -980E6,
+        't1': 80,
+        't2': 80,
+        't': 80
+    }
+    beam = RectConcSect(**kwargs2)
+    #print(beam)
+    print(beam.eps_0())
+    print(beam.k())
+    print(beam.stress_t(0))
+    print(beam.stress(beam.h))

@@ -44,7 +44,9 @@ class ConcreteSection(Section):
         self.Es = kwargs.get('Es', self.kwDefaults['Es']) #210,000Mpa
         self.Ep = kwargs.get('Ep', self.kwDefaults['Ep']) #195,000Mpa
         self.ns = self.Es / self.Ecm
+        self.n_st = self.Es / self.E_cmt
         self.np = self.Ep / self.Ecm
+        self.n_pt = self.Ep / self.E_cmt
 
         #MATERIAL COEFFICIENTS
         self.gc = kwargs.get('gc', self.kwDefaults['gc'])
@@ -64,15 +66,20 @@ class ConcreteSection(Section):
         self.y_cen = self.ycentroid()
         self.I_xtop = self.Ix_top()
         self.Ixo = self.Ix0()
+        self.Wxo1 = self.Wx01()
+        self.Wxo2 = self.Wx02()
 
         #REINFORCEMENT POSITIONS
         self.ds1 = kwargs.get('ds1', self.kwDefaults['ds1'])
         self.ds2 = kwargs.get('ds2', self.kwDefaults['ds2'])
         self.dp = kwargs.get('dp', self.kwDefaults['dp'])
         self.dc = 0
+        self.ecc = self.e()  # active reinforcement eccentricity
 
         #HOMOGENIZED SECTION
         self.hmgSect = self.hmgSection()
+        self.hmgSect_t = self.hmgSection_t()
+        self.y_hmg_cen = self.ycentroid_hmg()
 
         #LOADS
         self.N = kwargs.get('N', self.kwDefaults['N'])
@@ -80,10 +87,16 @@ class ConcreteSection(Section):
 
         #STRAIN
         self.crv = self.k() # CURVATURE
+        self.crv_t = self.k_t()  # time-dep curvature
         self.epsilon_c0 = self.eps_0()  # TOP FIBRE'S STRAIN
+        self.epsilon_c0t = self.eps_0_t()  # time-dep top fibre's strain
 
     def __str__(self):
         str = f"""
+        ########################################################################################
+        BEAM INFO
+        ########################################################################################
+        
         -------------------------------MATERIALS------------------------------------------------
         STRENGTH
         fck: concrete characteristic strength......................................{self.fck} Mpa
@@ -104,7 +117,9 @@ class ConcreteSection(Section):
         
         MISCELLANEOUS
         ns: passive steel homogenization coefficient...............................{self.ns} -adim-
+        n_st: time dependent passive steel homogenization coefficient..............{self.n_st} -adim-
         np: pre-stress steel homogenization coefficient............................{self.np} -adim-
+        n_pt: time dependent active steel homogenization coefficient...............{self.n_pt} -adim-
         s: cement type for time-dependent calculations (0.2, 0.25, 0.38)...........{self.s} -adim-
         prestress_time: days after concrete pouring when pre-stress is applied.....{self.prestress_time} days
         gc: concrete strength reduction coefficient................................{self.gc} -adim-
@@ -120,14 +135,19 @@ class ConcreteSection(Section):
         b: width of the smallest bounding box that contains the section............{self.b} mm
         h: height of the smallest bounding box that contains the section...........{self.h} mm
         y_cen: y coordinate of the centroid from the top fibre.....................{self.y_cen} mm
+        y_hmg_cen: y coordinate of the centroid of the hmg sect from the top fibre.{self.y_hmg_cen} mm
         Ac: brute area of the section..............................................{self.Ac} mm2
         Q_xtop: static moment from the top fibre...................................{self.Q_xtop} mm3 
         Ixo: moment of inertia around axis through the centroid....................{self.Ixo} mm4
         I_xtop: moment of inertia around axis through the top fibre................{self.I_xtop} mm4
+        Wxo1: elastic section modulus from centroid to top fibre...................{self.Wxo1} mm3
+        Wxo2: elastic section modulus from centroid to bottom fibre................{self.Wxo2} mm3
         ds1: distance from the top fibre to the centroid of As1....................{self.ds1} mm
-        ds2: distance from the top fibre to the centroid of As1....................{self.ds2} mm
+        ds2: distance from the top fibre to the centroid of As2....................{self.ds2} mm
         dp: distance from the top fibre to the centroid of Ap......................{self.dp} mm
+        ecc: signed eccentricity of active reinforcement...........................{self.ecc} mm
         homogenized_section:....A: {self.hmgSect['A']} mm2, Q: {self.hmgSect['Q']} mm3, I: {self.hmgSect['I']} mm4
+        time-dep hmgSection:....A: {self.hmgSect_t['A']} mm2, Q: {self.hmgSect_t['Q']} mm3, I: {self.hmgSect_t['I']} mm4
         
         -------------------------------LOADS------------------------------------------------
         N: normal force applied in the section's centroid..........................{self.N} N
@@ -151,14 +171,23 @@ class ConcreteSection(Section):
         self.E_cmt = self.Ecm_t()  # time dependent secant Young's modulus
         self.ns = self.Es / self.Ecm
         self.np = self.Ep / self.Ecm
+        self.n_st = self.Es / self.E_cmt
+        self.n_pt = self.Ep / self.E_cmt
         self.Ac = self.bruteArea()
         self.Q_xtop = self.Qx_top()
         self.I_xtop = self.Ix_top()
         self.y_cen = self.ycentroid()
+        self.ecc = self.e()
         self.Ixo = self.Ix0()
+        self.Wxo1 = self.Wx01()
+        self.Wxo2 = self.Wx02()
         self.hmgSect = self.hmgSection()
+        self.hmgSect_t = self.hmgSection_t()
+        self.y_hmg_cen = self.ycentroid_hmg()
         self.crv = self.k()  # CURVATURE
+        self.crv_t = self.k_t()
         self.epsilon_c0 = self.eps_0()  # TOP FIBRE'S STRAIN
+        self.epsilon_c0t = self.eps_0_t()  # time-dep top fibre's strain
 
     def set(self, kwargs):
         """sets attributes to the values passed in a dict"""
@@ -269,10 +298,16 @@ class ConcreteSection(Section):
 
 #-----------STRAIN SECTION METHODS ------------------
 
-    def k(self): # test
+    def k(self):
         """signed curvature of the section"""
         num = self.N * self.hmgSect['Q'] - self.M * self.hmgSect['A']
         dem = self.Ecm * (pow(self.hmgSect['Q'], 2) - self.hmgSect['A'] * self.hmgSect['I'])
+        return num / dem
+
+    def k_t(self):
+        """time-dependet signed curvature of the section"""
+        num = self.N * self.hmgSect_t['Q'] - self.M * self.hmgSect_t['A']
+        dem = self.E_cmt * (pow(self.hmgSect_t['Q'], 2) - self.hmgSect_t['A'] * self.hmgSect_t['I'])
         return num / dem
 
     def eps_0(self): # test
@@ -281,13 +316,27 @@ class ConcreteSection(Section):
         dem = self.Ecm * (pow(self.hmgSect['Q'], 2) - self.hmgSect['A'] * self.hmgSect['I'])
         return num / dem
 
+    def eps_0_t(self): # test
+        """time-dependet signed strain of top fibre"""
+        num = self.M * self.hmgSect_t['Q'] - self.hmgSect_t['I'] * self.N
+        dem = self.Ecm * (pow(self.hmgSect_t['Q'], 2) - self.hmgSect_t['A'] * self.hmgSect_t['I'])
+        return num / dem
+
     def eps(self, y):
         """strain in any point y to section's height"""
         return self.epsilon_c0 + self.crv * y
 
+    def eps_t(self, y):
+        """time-dep strain in any point y to section's height"""
+        return self.epsilon_c0t + self.crv_t * y
+
     def stress(self, y):
         """stress in any point y to section's height"""
         return self.eps(y) * self.Ecm
+
+    def stress_t(self, y):
+        """stress in any point y to section's height"""
+        return self.eps_t(y) * self.E_cmt
 
     def hmgSection(self):
         """dictionary {area, first moment of inertia, second moment of inertia}
@@ -318,28 +367,68 @@ class ConcreteSection(Section):
         hmg['I'] = hmgI
         return hmg
 
+    def hmgSection_t(self):
+        """dictionary {area, first moment of inertia, second moment of inertia}
+        from the top fibre"""
+
+        hmg = dict()
+        hmgA = self.Ac
+        hmgAc1 = self.As1 * (self.n_st - 1)
+        hmgAc2 = self.As2 * (self.n_st - 1)
+        hmgAcp = self.Ap * (self.n_pt - 1)
+        hmgArea = hmgA + hmgAc1 + hmgAc2 + hmgAcp
+
+        # brure section static moment
+        hmgQA = self.Q_xtop
+        # reinforcement static moment
+        hmgQc1 = hmgAc1 * self.ds1
+        hmgQc2 = hmgAc2 * self.ds2
+        hmgQcp = hmgAcp * self.dp
+        hmgQ = hmgQA + hmgQc1 + hmgQc2 + hmgQcp
+
+        hmgIA = self.I_xtop
+        hmgIc1 = hmgQc1 * self.ds1
+        hmgIc2 = hmgQc2 * self.ds2
+        hmgIcp = hmgQcp * self.dp
+        hmgI = hmgIA + hmgIc1 + hmgIc2 + hmgIcp
+        hmg['A'] = hmgArea
+        hmg['Q'] = hmgQ
+        hmg['I'] = hmgI
+        return hmg
+
+    def ycentroid_hmg(self):
+        """y coordinate of the centroid of the homogenized section from the top fibre """
+        return self.hmgSect['Q'] / self.hmgSect['A']
+
+    def ycentroid_hmg_t(self):
+        """y coordinate of the centroid of the time-dependent homogenized section from the top fibre"""
+        return self.hmgSect_t['Q'] / self.hmgSect_t['A']
+
     def magnel_stress_limit(self, Mi: float, Mf: float):
         """checks if a section meets tension limits according to spanish
         structural code. This is a short-term check. No cracking is taken into account.
         :param Mi: mm*N initial moment (at the instant of prestress)
         :param Mf: mm*N complete moment under service loads
         """
+        # security coefficients must already been taken into account
+        # loads introduced must be the total loads applied to the section (sum all your moments and normal forces)
+        # moments must be calculated from the top fibre
         # initial load case stress
         self.M = Mi
-        init_top_stress = self.stress(0)
-        init_bottom_stress = self.stress(self.h)
+        init_top_stress = self.stress_t(0)
+        init_bottom_stress = self.stress_t(self.h)
 
         # final load case stress
         self.M = Mf
         final_top_stress = self.stress(0)
         final_bottom_stress = self.stress(self.h)
 
-        init_top_check = -0.45 * self.fck_t() < init_top_stress < self.fctm_t()
-        init_bottom_check = -0.45 * self.fck_t() < init_bottom_stress < self.fctm_t()
-        final_top_check = -0.45 * self.fck < final_top_stress < self.fctm()
-        final_bottpom_check = -0.45 * self.fck < final_bottom_stress < self.fctm()
+        init_top_check = (-0.45 * self.f_ckt) < init_top_stress < self.f_ctmt
+        init_bottom_check = (-0.45 * self.f_ckt) < init_bottom_stress < self.f_ctmt
+        final_top_check = (-0.45 * self.fck) < final_top_stress < self.f_ctm
+        final_bottom_check = (-0.45 * self.fck) < final_bottom_stress < self.f_ctm
 
-        return init_top_check and init_bottom_check and final_top_check and final_bottpom_check
+        return init_top_check and init_bottom_check and final_top_check and final_bottom_check
 
 #----------SECTION MODULUS------------
     def Wx01(self) -> float(): #text
