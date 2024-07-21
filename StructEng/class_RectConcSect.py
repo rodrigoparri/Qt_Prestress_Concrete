@@ -108,13 +108,13 @@ if __name__ == "__main__":
         'ds2' : 740,
         'dp' : 600,
         'N' : -1350E3,
-        'M' : -980E6,
+        'M' : -310E6,
         't1': 80,
         't2': 80,
         't': 80
     }
     beam = RectConcSect(**kwargs2)
-    #print(beam)
+    print(beam)
     print(beam.eps_0())
     print(beam.k())
     print(beam.stress_t(0))

@@ -79,7 +79,6 @@ class ConcreteSection(Section):
         #HOMOGENIZED SECTION
         self.hmgSect = self.hmgSection()
         self.hmgSect_t = self.hmgSection_t()
-        self.y_hmg_cen = self.ycentroid_hmg()
 
         #LOADS
         self.N = kwargs.get('N', self.kwDefaults['N'])
@@ -135,7 +134,6 @@ class ConcreteSection(Section):
         b: width of the smallest bounding box that contains the section............{self.b} mm
         h: height of the smallest bounding box that contains the section...........{self.h} mm
         y_cen: y coordinate of the centroid from the top fibre.....................{self.y_cen} mm
-        y_hmg_cen: y coordinate of the centroid of the hmg sect from the top fibre.{self.y_hmg_cen} mm
         Ac: brute area of the section..............................................{self.Ac} mm2
         Q_xtop: static moment from the top fibre...................................{self.Q_xtop} mm3 
         Ixo: moment of inertia around axis through the centroid....................{self.Ixo} mm4
@@ -146,8 +144,22 @@ class ConcreteSection(Section):
         ds2: distance from the top fibre to the centroid of As2....................{self.ds2} mm
         dp: distance from the top fibre to the centroid of Ap......................{self.dp} mm
         ecc: signed eccentricity of active reinforcement...........................{self.ecc} mm
-        homogenized_section:....A: {self.hmgSect['A']} mm2, Q: {self.hmgSect['Q']} mm3, I: {self.hmgSect['I']} mm4
-        time-dep hmgSection:....A: {self.hmgSect_t['A']} mm2, Q: {self.hmgSect_t['Q']} mm3, I: {self.hmgSect_t['I']} mm4
+        
+        HOMOGENIZED SECTION
+        hmgA:......................................................................{self.hmgSect['A']} mm2
+        hmgQ:......................................................................{self.hmgSect['Q']} mm3
+        hmgI:......................................................................{self.hmgSect['I']} mm4
+        hmg_y_cen:.................................................................{self.hmgSect['y_cen']}mm
+        hmg_Wxo1...................................................................{self.hmgSect['Wxo1']}mm3
+        hmg_Wxo2...................................................................{self.hmgSect['Wxo2']}mm3
+        
+        TIME DEPENDENT HOMOGENIZED SECTION
+        time-dep hmga:.............................................................{self.hmgSect_t['A']} mm2
+        time-dep hmgQ:.............................................................{self.hmgSect_t['Q']} mm3
+        time-dep hmgI:.............................................................{self.hmgSect_t['I']} mm4
+        time-dep hmg_y_cen:........................................................{self.hmgSect_t['y_cen']}mm
+        time-dep hmg_Wxo1:.........................................................{self.hmgSect_t['Wxo1']}mm3
+        time-dep hmg_Wxo2:.........................................................{self.hmgSect_t['Wxo2']}mm3
         
         -------------------------------LOADS------------------------------------------------
         N: normal force applied in the section's centroid..........................{self.N} N
@@ -183,7 +195,6 @@ class ConcreteSection(Section):
         self.Wxo2 = self.Wx02()
         self.hmgSect = self.hmgSection()
         self.hmgSect_t = self.hmgSection_t()
-        self.y_hmg_cen = self.ycentroid_hmg()
         self.crv = self.k()  # CURVATURE
         self.crv_t = self.k_t()
         self.epsilon_c0 = self.eps_0()  # TOP FIBRE'S STRAIN
@@ -362,9 +373,20 @@ class ConcreteSection(Section):
         hmgIc2 = hmgQc2 * self.ds2
         hmgIcp = hmgQcp * self.dp
         hmgI = hmgIA + hmgIc1 + hmgIc2 + hmgIcp
+
+        # homogenized section's centroid
+        hmg_y_cen = hmgQ / hmgA
+        # homogenized section's elastic modulus
+        hmg_W01 = hmgI / hmg_y_cen
+        hmg_W02 = hmgI / (self.h - hmg_y_cen)
+
         hmg['A'] = hmgArea
         hmg['Q'] = hmgQ
         hmg['I'] = hmgI
+        hmg['y_cen'] = hmg_y_cen
+        hmg['Wxo1'] = hmg_W01
+        hmg['Wxo2'] = hmg_W02
+
         return hmg
 
     def hmgSection_t(self):
@@ -391,9 +413,19 @@ class ConcreteSection(Section):
         hmgIc2 = hmgQc2 * self.ds2
         hmgIcp = hmgQcp * self.dp
         hmgI = hmgIA + hmgIc1 + hmgIc2 + hmgIcp
+
+        # homogenized section's centroid
+        hmg_y_cen = hmgQ / hmgA
+        # homogenized section's elastic modulus
+        hmg_W01 = hmgI / hmg_y_cen
+        hmg_W02 = hmgI / (self.h - hmg_y_cen)
+
         hmg['A'] = hmgArea
         hmg['Q'] = hmgQ
         hmg['I'] = hmgI
+        hmg['y_cen'] = hmg_y_cen
+        hmg['Wxo1'] = hmg_W01
+        hmg['Wxo2'] = hmg_W02
         return hmg
 
     def ycentroid_hmg(self):

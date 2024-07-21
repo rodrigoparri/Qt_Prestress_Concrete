@@ -165,17 +165,17 @@ class TestRectSect(unittest.TestCase):
         self.assertEqual(self.RectBeam.stress(self.RectBeam.h), stress_h)
 
     def test_mangel_stress_Limit_returns_correctly(self):
-        Mi = 100E6
-        Mf = 500E6
+        # M0 and M1 are the moments from external loads
+        #M0 = 100E6
+        #M1 = 500E6
+        # Mi Mf must be the whole moment applied to the section
+        Mi = -710E6
+        Mf = -310E6
 
         self.RectBeam.set(self.kwargs)
         self.assertFalse(self.RectBeam.magnel_stress_limit(Mi, Mf))
 
         self.RectBeam.set({'b': 500, 'h': 1000, 'dp': 800, 'fck': 35, 'N': -1350E3})
-        print(self.RectBeam)
-        Mp = self.RectBeam.N * self.RectBeam.dp
-        Mi = Mi + Mp
-        Mf = Mf + Mp
         self.assertTrue(self.RectBeam.magnel_stress_limit(Mi, Mf))
 
 
