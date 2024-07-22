@@ -89,7 +89,7 @@ if __name__ == "__main__":
         'M' : -710E6
     }
     kwargs2 = {
-        'fck' : 20,
+        'fck' : 35,
         'fyk' : 400,
         'fpk' : 1750,
         'Es' : 200E3,
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         'gc' : 1.5,
         'gs' : 1.15,
         'gp' : 1.15,
-        'As1' : 9000,
+        'As1' : 900,
         'As2' : 1800,
         'Ap' : 1000,
         'b' : 500,
@@ -109,12 +109,10 @@ if __name__ == "__main__":
         'dp' : 600,
         'N' : -1350E3,
         'M' : -310E6,
-        't1': 80,
-        't2': 80,
-        't': 80
     }
+    #{'b': 500, 'h': 1000, 'dp': 600, 'fck': 35, 'N': -1350E3}
     beam = RectConcSect(**kwargs2)
-    print(beam)
+    #print(beam)
     print(beam.eps_0())
     print(beam.k())
     print(beam.stress_t(0))

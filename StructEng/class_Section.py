@@ -44,6 +44,12 @@ class Section(ABC):
         """moment of inertia of area of a portion of the section defined between the top and an arbitrary
         horizontal axis at distance y from the top
         :param y: distance from the top to the axis that limits the section's portion"""
+        pass
+
+    @abstractmethod
+    def alpha_y(self, y):
+        """Integral of the function A(y) which is implemented as A_y() in this code"""
+        pass
 
     @abstractmethod
     def ycentroid_y(self, y):

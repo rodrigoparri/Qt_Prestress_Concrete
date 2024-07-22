@@ -66,6 +66,7 @@ class TestRectSect(unittest.TestCase):
     RectBeam = RectConcSect(**kwargs)
     RectBeam_defaut = RectConcSect()
 
+
     def test_RectConcSect_created_correctly(self):
         self.assertIsInstance(self.RectBeam, RectConcSect)
         for key, value in self.kwargs.items():
@@ -95,6 +96,7 @@ class TestRectSect(unittest.TestCase):
     def test_Ix_top_returns_correct_values(self):
         self.assertEqual(self.RectBeam.Ix_top(), self.RectBeam.Ix0() + self.RectBeam.bruteArea() \
                                                                  * pow(self.kwargs['h'] / 2, 2))
+
     def test_ns_is_correct(self):
         ns = self.kwargs['Es'] / self.RectBeam.Ecm
         self.assertEqual(self.RectBeam.ns, ns)
@@ -164,18 +166,54 @@ class TestRectSect(unittest.TestCase):
         self.assertEqual(self.RectBeam.stress(0), stress_o)
         self.assertEqual(self.RectBeam.stress(self.RectBeam.h), stress_h)
 
-    def test_mangel_stress_Limit_returns_correctly(self):
+    def test_mangel_stress_limit_returns_correctly(self):
         # M0 and M1 are the moments from external loads
-        #M0 = 100E6
-        #M1 = 500E6
+        M0 = 100E6
+        M1 = 500E6
         # Mi Mf must be the whole moment applied to the section
-        Mi = -710E6
-        Mf = -310E6
+        Mp = self.RectBeam.dp * self.RectBeam.N
+        Mi = M0 + Mp
+        Mf = M1 + Mp
 
         self.RectBeam.set(self.kwargs)
         self.assertFalse(self.RectBeam.magnel_stress_limit(Mi, Mf))
 
-        self.RectBeam.set({'b': 500, 'h': 1000, 'dp': 800, 'fck': 35, 'N': -1350E3})
+        self.RectBeam.set({'dp': 700, 'N': -1000, })
+        #update moments
+        Mp = self.RectBeam.dp * self.RectBeam.N
+        Mi = M0 + Mp
+        Mf = M1 + Mp
+        self.assertFalse(self.RectBeam.magnel_stress_limit(Mi, Mf))
+
+        self.RectBeam.set({
+        'fck' : 35,
+        'fyk' : 400,
+        'fpk' : 1750,
+        'Es' : 200E3,
+        'Ep' : 195E3,
+        's' : 0.25,
+        'prestress_time' : 7,
+        'gc' : 1.5,
+        'gs' : 1.15,
+        'gp' : 1.15,
+        'As1' : 900,
+        'As2' : 1800,
+        'Ap' : 1000,
+        'b' : 500,
+        'h' : 1000,
+        'ds1' : 60,
+        'ds2' : 740,
+        'dp' : 600,
+        'N' : -1350E3,
+        'M' : -310E6,
+    })
+        #print(type(self.RectBeam))
+        print(self.RectBeam.stress(0))
+        print(self.RectBeam.stress(self.RectBeam.h))
+        #update moments
+        Mp = self.RectBeam.dp * self.RectBeam.N
+        Mi = M0 + Mp
+        Mf = M1 + Mp
         self.assertTrue(self.RectBeam.magnel_stress_limit(Mi, Mf))
 
 
