@@ -9,5 +9,6 @@
 /tests/__pycache__/
 
 # ignore external files
+/ai
 /maple
 /regulations
