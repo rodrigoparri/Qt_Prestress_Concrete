@@ -48,6 +48,7 @@ class ConcreteSection(Section):
         self.np = self.Ep / self.Ecm
         self.n_pt = self.Ep / self.E_cmt
         self.epsilon_c2 = self.eps_c2()
+        self.HR = 25  # relative moisture (%)
 
         # MATERIAL COEFFICIENTS
         self.gc = kwargs.get('gc', self.kwDefaults['gc'])
@@ -94,7 +95,6 @@ class ConcreteSection(Section):
         self.epsilon_c0 = self.eps_0()  # TOP FIBRE'S STRAIN
         self.epsilon_c0t = self.eps_0_t()  # time-dep top fibre's strain
         self.epsilon_c0cr = self.eps_0_cr()  # cracked section top fibre's strain
-
 
     def __str__(self):
         str = f"""
@@ -329,6 +329,12 @@ class ConcreteSection(Section):
         """time-dependent secant concrete elastic modulus"""
         return pow(self.f_cmt / self.f_cm, 0.3) * self.Ecm
 
+    def phi_t(self,t):
+        """creep coefficient from t0 to max time t"""
+
+
+        return phi_0 * self.Bc(t)
+
     def e(self):
         """distance from the centroid to the pre-tensioned steel centroid"""
         return self.dp - self.y_cen
@@ -454,9 +460,12 @@ class ConcreteSection(Section):
     def hmgSection_y(self, y):
         """dictionary {Area, First moment of inertia, Second moment of inertia}
         from the top fibre to an arbitrary fibre a distance y from the top surface
-        of the homogenized section"""
+        of the homogenized section. All homogenized area of steel reinforcement (passive and active)
+        is taken into account whatever the param y. that is because this function is used in cracked section
+        checks"""
 
         hmg = dict()
+        # only brute area properties A,Q,I and derived results  is affected by the param y
         hmgA = self.A_y(y)
         hmgAc1 = self.As1 * (self.ns - 1)
         hmgAc2 = self.As2 * (self.ns - 1)
