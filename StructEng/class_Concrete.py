@@ -5,19 +5,27 @@ from class_Material import Material
 class Concrete(Material):
 
     kwDefaults = {
-        's': 0.25,
+        's': 'S',  # S, N, R
         'prestress_time': 7,
-        'HR': 25
+        'HR': 25,
+        'T': 25,  # time-weighted average temperature the concrete will be exposed to
+        'life_exp': 100  # life expectancy in years
     }
+
     def __init__(self,fck, h0, **kwargs):
         self.h_0 = h0
 
         self.s = kwargs.get('s', self.kwDefaults['s'])
         self.prestress_time = kwargs.get('prestress_time', self.kwDefaults['prestress_time'])
         self.HR = kwargs.get('HR', self.kwDefaults['HR'])
+        self.T = kwargs.get('T', self.kwDefaults['T'])
+        self.life_exp = kwargs.get('life_exp', self.kwDefaults['life_exp'])
 
         super().__init__(fck, **kwargs)
 
+        # current stress applied to the material
+        self.sigma_c = 0
+        # strength attributes
         self.B_cc = self.Bcc()
         self.f_ckt = self.fck_t()
         self.f_cm = self.fcm()
@@ -25,23 +33,46 @@ class Concrete(Material):
         self.f_ctm = self.fctm()
         self.f_ctmt = self.fctm_t()
         self.E_cm = self.Ecm()
+        self.E_c = self.Ec()
         self.E_cmt = self.Ecm_t()
 
+        self.alpha_ = self.alpha()
         self.alpha_1 = self.alpha_n(0.7)
         self.alpha_2 = self.alpha_n(0.2)
         self.alpha_3 = self.alpha_n(0.5)
 
+        self.t_0T = self.t0T()
+        self.t_0 = self.t0()
+
+        # terms for basic creep coefficient
         self.phi_HR = self.phiHR()
+        self.B_fcm = self.Bfcm()
+        self.B_t0 = self.Bt0()
+        self.B_ct = self.Bc_t()
+        # basic creep coefficient
+        self.phi_0 = self.phi0()
+        # linear creep coefficient
+        self.phi_t = self.phi_time()
+        # non-linear creep coefficient
+        self.phi_nl = self.phi_non_lin()
 
-    def set(self,fck, **kwargs):
+    def set(self, fck, **kwargs):
         self.__init__(fck, **kwargs)
-
 
     def Bcc(self):
         """time dependent scalar that reduces concrete strength for a time t
         between 3 and 28 days
         """
-        return exp(self.s * (1 - pow(28 / self.prestress_time, 0.5)))
+        if self.s == 'S':
+            s = 0.2
+        elif self.s == 'N':
+            s = 0.25
+        elif self.s == 'R':
+            s = 0.38
+        else:
+            raise ValueError
+
+        return exp(s * (1 - pow(28 / self.prestress_time, 0.5)))
 
     def fcm(self):
         """ average concrete compression strength"""
@@ -70,9 +101,23 @@ class Concrete(Material):
         """average concrete elastic modulus"""
         return 22 * pow(self.f_cm * 0.1, 0.3) * 1E3
 
+    def Ec(self):
+        return  1.05 * self.E_cm
+
     def Ecm_t(self):
         """time-dependent average concrete elastic modulus"""
         return pow(self.f_cmt / self.f_cm, 0.3) * self.E_cm
+
+# CREEP METHODS
+    def alpha(self):
+        if self.s == 'S':
+            return -1
+        elif self.s == 'N':
+            return 0
+        elif self.s == 'R':
+            return 1
+        else:
+            raise ValueError
 
     def alpha_n(self, n):
         """factors that take into account the influence of concrete's strength
@@ -100,12 +145,12 @@ class Concrete(Material):
     def Bt0(self):
         """coefficient that takes into account the loading age over the
         basic creep coefficient"""
-        return  1 / (0.1 + pow(self.prestress_time, 0.2))
+        return  1 / (0.1 + pow(self.t_0, 0.2))
 
-    def B_H(self, h0):
+    def B_H(self):
         """Coefficient depending on relative humidity (%) and the theoretical
         element size (mm)"""
-        a = 1.5 * (1 + pow(0.012 * self.HR, 18) * h0)
+        a = 1.5 * (1 + pow(0.012 * self.HR, 18) * self.h_0)
         Bh = a + 250
         if 0 < self.f_cm <= 35:
             if Bh <= 1500:
@@ -120,10 +165,34 @@ class Concrete(Material):
             else:
                 return a
 
-    def Bc_t(self, t):
-        num = t - self.prestress_time
-        dem = self.B_H(self.h_0) + t - self.prestress_time
+    def Bc_t(self):
+        """coefficient describing creep development over time after loading"""
+        num = self.t_0T - self.t_0
+        dem = self.B_H() + num
         return pow(num / dem, 0.3)
 
-    def phi_t(self, t):
-        pass
+    def t0(self):
+        """the cement type effects over the creep coefficient can be taken into account modifying the loading age
+        t0 according to the next expression"""
+        to = self.t_0T * pow(9 / 2 + pow(self.t_0T, 1.2) + 1, self.alpha_)
+        if to >= 0.5:
+            return to
+        elif 0 <= to < 0.5:
+            return 0.5
+        else:
+            raise ValueError
+
+    def t0T(self):
+        """loading age adjusted that replaces t in the corresponding equations"""
+        return exp(4000 / (273 + self.T) - 13.65) * self.life_exp * 365
+
+    def phi0(self):
+        return self.phi_HR * self.B_fcm * self.B_t0
+
+    def phi_time(self):
+        return self.phi_0 * self.B_ct
+
+    def phi_non_lin(self):
+        return self.phi_t * exp(1.5 * (self.sigma_c / self.f_ckt) - 0.45)
+
+# SHRINKAGE METHODS
