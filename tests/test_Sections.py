@@ -1,6 +1,6 @@
 import unittest
-from StructEng.class_RectConcSect import RectConcSect
-from StructEng.class_TConcSect import TConcSect
+from StructEng.Sections.class_RectConcSect import RectConcSect
+from StructEng.Sections.class_TConcSect import TConcSect
 
 from scipy.integrate import quad
 

@@ -1,7 +1,3 @@
-from abc import ABC, abstractmethod
-import class_Section
-
-
 class Beam():
     pass
 

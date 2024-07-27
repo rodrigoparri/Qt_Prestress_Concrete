@@ -1,4 +1,4 @@
-from StructEng.class_ConcreteSection import ConcreteSection
+from StructEng.Sections.class_ConcreteSection import ConcreteSection
 
 class RectConcSect(ConcreteSection):
     """

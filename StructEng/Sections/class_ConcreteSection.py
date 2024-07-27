@@ -1,5 +1,9 @@
 from math import exp, log
-from StructEng.class_Section import Section
+from StructEng.Sections.class_Section import Section
+from StructEng.Materials.class_Concrete import Concrete
+from StructEng.Materials.class_ReinforcementSteel import ReinforcementSteel
+from StructEng.Materials.class_PrestressSteel import PrestressSteel
+
 
 
 class ConcreteSection(Section):
@@ -26,8 +30,11 @@ class ConcreteSection(Section):
         'M': 0
     }
 
-    def __init__(self, **kwargs):
+    def __init__(self, concrete: Concrete, steel_s: ReinforcementSteel, steel_p: PrestressSteel, **kwargs):
         # MATERIAL
+        self.concrete = concrete
+        self.pass_steel = steel_s
+        self.pres_steel = steel_p
         self.fck = kwargs.get('fck', self.kwDefaults['fck'])
         self.s = kwargs.get('s', self.kwDefaults['s'])  # cement type
         self.prestress_time = kwargs.get('prestress_time', self.kwDefaults['prestress_time'])
@@ -103,26 +110,11 @@ class ConcreteSection(Section):
         ########################################################################################
         
         -------------------------------MATERIALS------------------------------------------------
-        STRENGTH
-        fck: concrete characteristic strength......................................{self.fck} Mpa
-        fck_t: concrete characteristic compression strength. t in days.............{self.f_ckt} Mpa
-        fcm: average concrete compression strength.................................{self.f_cm} Mpa
-        fcm_t: time-dependent average concrete compression strength................{self.f_cmt} Mpa
-        fctm: average concrete tensile strength....................................{self.f_ctm} Mpa
-        fctm_t: average time-dependent concrete tensile strength...................{self.f_ctmt} Mpa
-        Bcc: time dependent scalar for time-dependent calculations.................{self.B_cc} -adim-
         fyk: passive steel characteristic strength.................................{self.fyk} Mpa
         fpk: pre-stress steel characteristic strength..............................{self.fpk} Mpa
         
-        YOUNG'S MODULUS
-        Ecm: concrete average Young's modulus......................................{self.Ecm} Mpa
-        Ecm_t: time-dependent secant concrete elastic modulus......................{self.E_cmt} Mpa
         Es: passive steel Young's modulus..........................................{self.Es} Mpa
         Ep: pre-stress steel Young's modulus.......................................{self.Ep} Mpa
-        
-        YIELD STRAIN
-        epsilon_c2: concrete yield strain parable-rectangle model..................{self.epsilon_c2} -adim-
-        
         MISCELLANEOUS
         ns: passive steel homogenization coefficient...............................{self.ns} -adim-
         n_st: time dependent passive steel homogenization coefficient..............{self.n_st} -adim-
@@ -393,13 +385,6 @@ class ConcreteSection(Section):
         :param y: point of the section's height to evaluate eps_y() at"""
 
         return self.eps_0_cr() + self.crv_cr * y
-
-    def eps_c2(self):
-        """yield strain according to spanish Código Estructural parable-rectangle stress-strain model"""
-        if self.fck <= 50:
-            return 0.002
-        else:
-            return 2 + 0.85 * pow(self.fck - 50, 0.53)
 
     # STRESS METHODS
     def stress(self, y):

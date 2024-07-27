@@ -1,10 +1,11 @@
 from math import exp, log, sqrt
-from class_Material import Material
+from StructEng.Materials.class_Material import Material
 
 
-class Concrete(Material):
+class Concrete():
 
     kwDefaults = {
+        'h0': 0,
         's': 'S',  # S, N, R
         'prestress_time': 7,
         'HR': 25,
@@ -12,9 +13,8 @@ class Concrete(Material):
         'life_exp': 100  # life expectancy in years
     }
 
-    def __init__(self,fck, h0, **kwargs):
-        self.h_0 = h0
-
+    def __init__(self,fck, **kwargs):
+        self.h_0 = kwargs.get('h0', self.kwDefaults['h0'])
         self.s = kwargs.get('s', self.kwDefaults['s'])
         self.prestress_time = kwargs.get('prestress_time', self.kwDefaults['prestress_time'])
         self.HR = kwargs.get('HR', self.kwDefaults['HR'])
@@ -26,16 +26,20 @@ class Concrete(Material):
         # current stress applied to the material
         self.sigma_c = 0
         # strength attributes
+        self.fck = fck
         self.B_cc = self.Bcc()
         self.f_ckt = self.fck_t()
         self.f_cm = self.fcm()
         self.f_cmt = self.fcm_t()
         self.f_ctm = self.fctm()
         self.f_ctmt = self.fctm_t()
+        # Young modulus attrs
         self.E_cm = self.Ecm()
         self.E_c = self.Ec()
         self.E_cmt = self.Ecm_t()
-
+        # stain attrs
+        self.epsilon_c2 = self.eps_c2()
+        # strength modifier attrs (used in creep calculations)
         self.alpha_ = self.alpha()
         self.alpha_1 = self.alpha_n(0.7)
         self.alpha_2 = self.alpha_n(0.2)
@@ -55,6 +59,42 @@ class Concrete(Material):
         self.phi_t = self.phi_time()
         # non-linear creep coefficient
         self.phi_nl = self.phi_non_lin()
+
+    def __str__(self):
+        str = f"""
+        STRENGTH
+        fck_t: concrete characteristic compression strength. t in days.............{self.f_ckt} Mpa
+        fcm: average concrete compression strength.................................{self.f_cm} Mpa
+        fcm_t: time-dependent average concrete compression strength................{self.f_cmt} Mpa
+        fctm: average concrete tensile strength....................................{self.f_ctm} Mpa
+        fctm_t: average time-dependent concrete tensile strength...................{self.f_ctmt} Mpa
+        Bcc: time dependent scalar for time-dependent calculations.................{self.B_cc} -adim-
+        
+        YOUNG'S MODULUS
+        Ecm: concrete average Young's modulus......................................{self.Ecm} Mpa
+        Ec: concrete secant Young's modulus........................................{self.Ec} Mpa
+        Ecm_t: time-dependent secant concrete elastic modulus......................{self.E_cmt} Mpa
+
+        YIELD STRAIN
+        epsilon_c2: concrete yield strain parable-rectangle model..................{self.epsilon_c2} -adim-
+                
+        CREEP METHODS
+        phi_t: time-dependent creep coefficient....................................{self.phi_t} -adim-
+        phi_nl: time-dependent non-linear creep coefficient........................{self.phi_nl} -adim-
+        phi_0: basic creep coefficient.............................................{self.phi_0} -adim-
+        B_ct: time dependent scalar of time-dependent creep coefficient............{self.B_ct} -adim-
+        phi_HR: relative humidity component of the basic creep coefficient.........{self.phi_HR} -adim-
+        B_fcm: strength component of the basic creep coefficient...................{self.B_fcm} -adim-
+        B_t0: initial loading time component of the basic creep coefficient........{self.B_t0} -adim-
+        t_0: cement dependent initial loading time.................................{self.t_0} days
+        t_0T: age at loading time correct as a function of temperature.............{self.t_0T} days
+        
+        alpha_: cement type-dependent exponent...................................{self.alpha_} -adim-
+        alpha_1: factor taking into account concrete strength....................{self.alpha_1} -adim-
+        alpha_2: factor taking into account concrete strength....................{self.alpha_2} -adim-
+        alpha_3: factor taking into account concrete strength....................{self.alpha_3} -adim-
+        """
+        return super().__str__() + str
 
     def set(self, fck, **kwargs):
         self.__init__(fck, **kwargs)
@@ -107,6 +147,13 @@ class Concrete(Material):
     def Ecm_t(self):
         """time-dependent average concrete elastic modulus"""
         return pow(self.f_cmt / self.f_cm, 0.3) * self.E_cm
+
+    def eps_c2(self):
+        """yield strain according to spanish Código Estructural parable-rectangle stress-strain model"""
+        if self.fck <= 50:
+            return 0.002
+        else:
+            return 2 + 0.85 * pow(self.fck - 50, 0.53)
 
 # CREEP METHODS
     def alpha(self):
