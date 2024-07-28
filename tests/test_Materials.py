@@ -2,6 +2,7 @@ import unittest
 from math import exp, log
 from StructEng.Materials.class_Concrete import Concrete
 
+
 class TestConcrete(unittest.TestCase):
     kwattrs = {
             'fck': 25,
@@ -66,11 +67,18 @@ class TestConcrete(unittest.TestCase):
         self.concrete.set(default=True)
 
     def test_fctm_t_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.fctm_t(), self.RectBeam_default.Bcc() * self.RectBeam_default.fctm())
+        self.assertEqual(self.default_concrete.f_ctmt, self.default_concrete.B_cc * self.default_concrete.f_ctm)
+        self.assertEqual(self.concrete.f_ctmt, self.concrete.B_cc * self.concrete.f_ctm)
+        self.concrete.set(fck=50)
+        self.assertEqual(self.concrete.f_ctmt, self.concrete.B_cc * self.concrete.f_ctm)
+        self.concrete.set(**self.kwattrs)
 
     def test_fck_t_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.fck_t(), self.RectBeam_default.Bcc() * self.RectBeam_default.fck)
+        self.assertEqual(self.default_concrete.f_ckt, self.default_concrete.B_cc * self.default_concrete.fck)
+        self.assertEqual(self.concrete.f_ckt, self.concrete.B_cc * self.concrete.fck)
 
     def test_Ecm_t_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.Ecm_t(), pow(self.RectBeam_default.fcm_t() / self.RectBeam_default.fcm(), 0.3) \
-                                                        * self.RectBeam_default.Ecm)
+        self.assertEqual(self.default_concrete.E_cmt, pow(self.default_concrete.f_cmt / self.default_concrete.fcm(), 0.3)\
+                                                        * self.default_concrete.E_cm)
+        self.assertEqual(self.concrete.E_cmt, pow(self.concrete.f_cmt / self.concrete.fcm(), 0.3) * self.concrete.E_cm)
+
