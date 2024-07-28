@@ -241,7 +241,7 @@ class Concrete:
     def Bt0(self):
         """coefficient that takes into account the loading age over the
         basic creep coefficient"""
-        return  1 / (0.1 + pow(self.t_0, 0.2))
+        return 1 / (0.1 + pow(self.t_0, 0.2))
 
     def B_H(self):
         """Coefficient depending on relative humidity (%) and the theoretical

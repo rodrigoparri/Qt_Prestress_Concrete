@@ -1,5 +1,5 @@
 import unittest
-from math import exp, log
+from math import exp, log, sqrt
 from StructEng.Materials.class_Concrete import Concrete
 
 
@@ -82,3 +82,76 @@ class TestConcrete(unittest.TestCase):
                                                         * self.default_concrete.E_cm)
         self.assertEqual(self.concrete.E_cmt, pow(self.concrete.f_cmt / self.concrete.fcm(), 0.3) * self.concrete.E_cm)
 
+    def test_eps_c2_returns_correctly(self):
+        self.concrete.set(fck=50)
+        self.assertTrue(self.concrete.epsilon_c2 == 0.002)
+        self.concrete.set(fck=60)
+        eps_c2 = 2 + 0.85 * pow(self.concrete.fck - 50, 0.53)
+        self.assertEqual(self.concrete.epsilon_c2, eps_c2)
+        self.concrete.set(**self.kwattrs)
+
+    def test_alpha_returns_correctly(self):
+        self.concrete.set(cem_type='S')
+        self.assertEqual(self.concrete.alpha_, -1)
+        self.concrete.set(cem_type='N')
+        self.assertEqual(self.concrete.alpha_, 0)
+        self.concrete.set(cem_type='R')
+        self.assertEqual(self.concrete.alpha_, 1)
+
+    def test_alpha_n(self):
+        n = (0.7, 0.2, 0.5)
+        for i in n:
+            self.assertEqual(self.concrete.alpha_n(i), pow(35/self.concrete.f_cm, i))
+
+    def test_phiHR_returns_correctly(self):
+        num = 1 - self.concrete.HR * 0.01
+        dem = 0.1 * pow(self.concrete.h0, 1/3)
+        self.concrete.set(fck=25)
+        self.assertEqual(self.concrete.phi_HR, 1 + num / dem)
+
+        self.concrete.set(fck=30)
+        num = 1 - self.concrete.HR * 0.01
+        dem = 0.1 * pow(self.concrete.h0, 1/3)
+        self.assertEqual(self.concrete.phi_HR, (1 + num / dem * self.concrete.alpha_1) * self.concrete.alpha_2)
+        self.concrete.set(**self.kwattrs)
+
+    def test_Bfcm_returns_correctly(self):
+        self.assertEqual(self.concrete.B_fcm, 16.8 / sqrt(self.concrete.f_cm))
+
+    def test_Bt0_returns_correctly(self):
+        self.assertEqual(self.concrete.B_t0, 1 / (0.1 + pow(self.concrete.t_0, 0.2)))
+
+    def test_B_H_returns_correctly(self):
+        self.concrete.set(fck=25)
+        a = 1.5 * (1 + pow(0.012 * self.concrete.HR, 18) * self.concrete.h0)
+        Bh = a + 250
+        if Bh >= 1500:
+            Bh = 1500
+        self.assertEqual(self.concrete.B_H(), Bh)
+
+        self.concrete.set(fck=30)
+        a = 1.5 * (1 + pow(0.012 * self.concrete.HR, 18) * self.concrete.h0)
+        Bh = a + 250 * self.concrete.alpha_3
+        if Bh >= 1500 * self.concrete.alpha_3:
+            Bh = 1500 * self.concrete.alpha_3
+        self.assertEqual(self.concrete.B_H(), Bh)
+
+        self.concrete.set(**self.kwattrs)
+
+    def test_t0_returns_correctly(self):
+        pass
+
+    def test_t0T_returns_correctly(self):
+        pass
+
+    def test_Bc_t_returns_correctly(self):
+        num = self.concrete.t_0T - self.concrete.t_0
+        dem = self.concrete.B_H() + num
+
+        self.assertEqual(self.concrete.B_ct, pow(num / dem, 0.3))
+
+    def test_phi_time_returns_correctly(self):
+        pass
+
+    def test_phi_non_lin_returns_correctly(self):
+        pass
