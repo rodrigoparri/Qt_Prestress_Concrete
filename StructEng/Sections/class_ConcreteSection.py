@@ -5,7 +5,6 @@ from StructEng.Materials.class_ReinforcementSteel import ReinforcementSteel
 from StructEng.Materials.class_PrestressSteel import PrestressSteel
 
 
-
 class ConcreteSection(Section):
     kwDefaults = {
         'fck': 25,
@@ -33,8 +32,9 @@ class ConcreteSection(Section):
     def __init__(self, concrete: Concrete, steel_s: ReinforcementSteel, steel_p: PrestressSteel, **kwargs):
         # MATERIAL
         self.concrete = concrete
-        self.pass_steel = steel_s
-        self.pres_steel = steel_p
+        self.passive_steel = steel_s
+        self.prestress_steel = steel_p
+
         self.fck = kwargs.get('fck', self.kwDefaults['fck'])
         self.s = kwargs.get('s', self.kwDefaults['s'])  # cement type
         self.prestress_time = kwargs.get('prestress_time', self.kwDefaults['prestress_time'])
@@ -44,17 +44,20 @@ class ConcreteSection(Section):
         self.f_cmt = self.fcm_t()  # time dependent average strength
         self.f_ctm = self.fctm()  # average tension strength
         self.f_ctmt = self.fctm_t()  # time dependent average tension strength
+
         self.fyk = kwargs.get('fyk', self.kwDefaults['fyk'])
         self.fpk = kwargs.get('fpk', self.kwDefaults['fpk'])
+
         self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3  # secant Young's modulus
         self.E_cmt = self.Ecm_t()  # time dependent secant Young's modulus
         self.Es = kwargs.get('Es', self.kwDefaults['Es'])  # 210,000Mpa
         self.Ep = kwargs.get('Ep', self.kwDefaults['Ep'])  # 195,000Mpa
-        self.ns = self.Es / self.Ecm
-        self.n_st = self.Es / self.E_cmt
-        self.np = self.Ep / self.Ecm
-        self.n_pt = self.Ep / self.E_cmt
-        self.epsilon_c2 = self.eps_c2()
+
+        self.ns = self.passive_steel.Es / self.concrete.Ecm
+        self.n_st = self.passive_steel.Es / self.concrete.E_cmt
+        self.np = self.prestress_steel.Ep / self.concrete.Ecm
+        self.n_pt = self.prestress_steel.Ep / self.concrete.E_cmt
+        # self.epsilon_c2 = self.eps_c2()
         self.HR = 25  # relative moisture (%)
 
         # MATERIAL COEFFICIENTS
@@ -104,7 +107,7 @@ class ConcreteSection(Section):
         self.epsilon_c0cr = self.eps_0_cr()  # cracked section top fibre's strain
 
     def __str__(self):
-        str = f"""
+        string = f"""
         ########################################################################################
         BEAM INFO
         ########################################################################################
@@ -185,7 +188,7 @@ class ConcreteSection(Section):
         k: signed curvature of the section.........................................{self.crv} mm-1
         eps_0: signed strain of top fibre..........................................{self.epsilon_c0} -admin-
         """
-        return str
+        return string
 
     def __upd_dep_attrs(self):
         """ updates all dependent attributes"""
@@ -321,12 +324,6 @@ class ConcreteSection(Section):
         """time-dependent secant concrete elastic modulus"""
         return pow(self.f_cmt / self.f_cm, 0.3) * self.Ecm
 
-    def phi_t(self,t):
-        """creep coefficient from t0 to max time t"""
-
-
-        return phi_0 * self.Bc(t)
-
     def e(self):
         """distance from the centroid to the pre-tensioned steel centroid"""
         return self.dp - self.y_cen
@@ -336,36 +333,36 @@ class ConcreteSection(Section):
     def k(self):
         """signed curvature of the section"""
         num = self.N * self.hmgSect['Q'] - self.M * self.hmgSect['A']
-        dem = self.Ecm * (pow(self.hmgSect['Q'], 2) - self.hmgSect['A'] * self.hmgSect['I'])
+        dem = self.concrete.E_cm * (pow(self.hmgSect['Q'], 2) - self.hmgSect['A'] * self.hmgSect['I'])
         return num / dem
 
     def k_t(self):
         """time-dependet signed curvature of the section"""
         num = self.N * self.hmgSect_t['Q'] - self.M * self.hmgSect_t['A']
-        dem = self.E_cmt * (pow(self.hmgSect_t['Q'], 2) - self.hmgSect_t['A'] * self.hmgSect_t['I'])
+        dem = self.concrete.E_cmt * (pow(self.hmgSect_t['Q'], 2) - self.hmgSect_t['A'] * self.hmgSect_t['I'])
         return num / dem
 
     def k_cr(self):
         """curvature of the cracked section"""
         num = self.hmgSect_y['Q'] * self.N - self.hmgSect_y['A']
-        dem = self.Ecm * (pow(self.hmgSect_y['Q'], 2) - self.hmgSect_y['A'] * self.hmgSect_y['I'])
+        dem = self.concrete.E_cm * (pow(self.hmgSect_y['Q'], 2) - self.hmgSect_y['A'] * self.hmgSect_y['I'])
         return num / dem
 
     def eps_0(self):  # test
         """signed strain of top fibre"""
         num = self.M * self.hmgSect['Q'] - self.hmgSect['I'] * self.N
-        dem = self.Ecm * (pow(self.hmgSect['Q'], 2) - self.hmgSect['A'] * self.hmgSect['I'])
+        dem = self.concrete.E_cm * (pow(self.hmgSect['Q'], 2) - self.hmgSect['A'] * self.hmgSect['I'])
         return num / dem
 
     def eps_0_t(self):  # test
         """time-dependet signed strain of top fibre"""
         num = self.M * self.hmgSect_t['Q'] - self.hmgSect_t['I'] * self.N
-        dem = self.Ecm * (pow(self.hmgSect_t['Q'], 2) - self.hmgSect_t['A'] * self.hmgSect_t['I'])
+        dem = self.concrete.E_cm * (pow(self.hmgSect_t['Q'], 2) - self.hmgSect_t['A'] * self.hmgSect_t['I'])
         return num / dem
 
     def eps_0_cr(self):
         num = self.hmgSect_y['Q'] * self.M - self.hmgSect_y['I'] * self.N
-        dem = self.Ecm * (pow(self.hmgSect_y['Q'], 2) - self.hmgSect_y['A'] * self.hmgSect_y['I'])
+        dem = self.concrete.E_cm * (pow(self.hmgSect_y['Q'], 2) - self.hmgSect_y['A'] * self.hmgSect_y['I'])
         return num / dem
 
     def eps(self, y):
@@ -389,7 +386,7 @@ class ConcreteSection(Section):
     # STRESS METHODS
     def stress(self, y):
         """stress at any point y to section's height"""
-        return self.eps(y) * self.Ecm
+        return self.eps(y) * self.concrete.E_cm
 
     def stress_t(self, y):
         """stress at any point y to section's height"""
@@ -558,10 +555,10 @@ class ConcreteSection(Section):
         final_top_stress = self.stress(0)
         final_bottom_stress = self.stress(self.h)
 
-        init_top_check = (-0.45 * self.f_ckt) < init_top_stress < self.f_ctmt
-        init_bottom_check = (-0.45 * self.f_ckt) < init_bottom_stress < self.f_ctmt
-        final_top_check = (-0.45 * self.fck) < final_top_stress < self.f_ctm
-        final_bottom_check = (-0.45 * self.fck) < final_bottom_stress < self.f_ctm
+        init_top_check = (-0.45 * self.concrete.f_ckt) < init_top_stress < self.concrete.f_ctmt
+        init_bottom_check = (-0.45 * self.concrete.f_ckt) < init_bottom_stress < self.concrete.f_ctmt
+        final_top_check = (-0.45 * self.concrete.fck) < final_top_stress < self.concrete.f_ctm
+        final_bottom_check = (-0.45 * self.concrete.fck) < final_bottom_stress < self.concrete.f_ctm
 
         return init_top_check and init_bottom_check and final_top_check and final_bottom_check
 

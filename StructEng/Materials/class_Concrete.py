@@ -1,10 +1,12 @@
 from math import exp, log, sqrt
-from StructEng.Materials.class_Material import Material
+# from StructEng.Materials.class_Material import Material
 
 
-class Concrete():
+class Concrete:
 
     kwDefaults = {
+        'fck': 35,
+        'gc': 1.5,  # concrete safety coefficient
         'h0': 0,
         's': 'S',  # S, N, R
         'prestress_time': 7,
@@ -13,7 +15,9 @@ class Concrete():
         'life_exp': 100  # life expectancy in years
     }
 
-    def __init__(self,fck, **kwargs):
+    def __init__(self, **kwargs):
+        self.fck = kwargs.get('fck', self.kwDefaults['fck'])
+        self.gc = kwargs.get('gc', self.kwDefaults['gc'])
         self.h_0 = kwargs.get('h0', self.kwDefaults['h0'])
         self.s = kwargs.get('s', self.kwDefaults['s'])
         self.prestress_time = kwargs.get('prestress_time', self.kwDefaults['prestress_time'])
@@ -21,12 +25,9 @@ class Concrete():
         self.T = kwargs.get('T', self.kwDefaults['T'])
         self.life_exp = kwargs.get('life_exp', self.kwDefaults['life_exp'])
 
-        super().__init__(fck, **kwargs)
-
         # current stress applied to the material
         self.sigma_c = 0
         # strength attributes
-        self.fck = fck
         self.B_cc = self.Bcc()
         self.f_ckt = self.fck_t()
         self.f_cm = self.fcm()
@@ -61,7 +62,7 @@ class Concrete():
         self.phi_nl = self.phi_non_lin()
 
     def __str__(self):
-        str = f"""
+        string = f"""
         STRENGTH
         fck_t: concrete characteristic compression strength. t in days.............{self.f_ckt} Mpa
         fcm: average concrete compression strength.................................{self.f_cm} Mpa
@@ -94,10 +95,11 @@ class Concrete():
         alpha_2: factor taking into account concrete strength....................{self.alpha_2} -adim-
         alpha_3: factor taking into account concrete strength....................{self.alpha_3} -adim-
         """
-        return super().__str__() + str
 
-    def set(self, fck, **kwargs):
-        self.__init__(fck, **kwargs)
+        return string
+
+    def set(self, **kwargs):
+        self.__init__(**kwargs)
 
     def Bcc(self):
         """time dependent scalar that reduces concrete strength for a time t
