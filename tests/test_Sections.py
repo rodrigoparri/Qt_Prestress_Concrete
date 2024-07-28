@@ -8,33 +8,6 @@ from scipy.integrate import quad
 class TestConcSect(unittest.TestCase):
     RectBeam_default = RectConcSect()
 
-    def test_Bcc_returns_correct_value(self):
-
-        result = self.RectBeam_default.Bcc()
-        self.assertTrue(0.7608 < result < 0.7609)
-
-    def test_fcm_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.fcm(), 33)
-
-    def test_fcm_t_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.fcm_t(),
-        self.RectBeam_default.Bcc() * self.RectBeam_default.fcm())
-
-    def test_fctm_returns_correct_value(self):
-        self.assertTrue(2.5649 < self.RectBeam_default.fctm() < 2.5650)
-        self.RectBeam_default.fck = 60
-        self.assertTrue(4.3547 < self.RectBeam_default.fctm() < 4.3548)
-        self.RectBeam_default.set(None)
-
-    def test_fctm_t_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.fctm_t(), self.RectBeam_default.Bcc() * self.RectBeam_default.fctm())
-
-    def test_fck_t_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.fck_t(), self.RectBeam_default.Bcc() * self.RectBeam_default.fck)
-
-    def test_Ecm_t_returns_correct_value(self):
-        self.assertEqual(self.RectBeam_default.Ecm_t(), pow(self.RectBeam_default.fcm_t() / self.RectBeam_default.fcm(), 0.3) \
-                                                        * self.RectBeam_default.Ecm)
 
     def test_e_returns_correct_value(self):
         self.assertEqual(self.RectBeam_default.e(), self.RectBeam_default.dp - self.RectBeam_default.ycentroid())
@@ -64,7 +37,7 @@ class TestRectSect(unittest.TestCase):
         'M' : -710E6
     }
     RectBeam = RectConcSect(**kwargs)
-    RectBeam_defaut = RectConcSect()
+    RectBeam_default = RectConcSect()
 
 
     def test_RectConcSect_created_correctly(self):
@@ -75,8 +48,8 @@ class TestRectSect(unittest.TestCase):
 
     def test_set_works_correctly(self):
         current_attrs = self.RectBeam.__dict__
-        self.RectBeam.set(None)
-        self.assertEqual(self.RectBeam.__dict__, self.RectBeam_defaut.__dict__)
+        self.RectBeam.set(default=True)
+        self.assertEqual(self.RectBeam.__dict__, self.RectBeam_default.__dict__)
 
         self.RectBeam.set(self.kwargs)
         self.assertEqual(self.RectBeam.__dict__, current_attrs)

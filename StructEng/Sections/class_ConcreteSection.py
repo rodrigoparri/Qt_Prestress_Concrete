@@ -1,4 +1,3 @@
-from math import exp, log
 from StructEng.Sections.class_Section import Section
 from StructEng.Materials.class_Concrete import Concrete
 from StructEng.Materials.class_ReinforcementSteel import ReinforcementSteel
@@ -6,17 +5,10 @@ from StructEng.Materials.class_PrestressSteel import PrestressSteel
 
 
 class ConcreteSection(Section):
+    concrete_default = Concrete()
+    passive_steel_default = ReinforcementSteel()
+    prestress_steel_default = PrestressSteel()
     kwDefaults = {
-        'fck': 25,
-        'fyk': 500,
-        'fpk': 1860,
-        'Es': 21E4,
-        'Ep': 195E3,
-        's': 0.2,
-        'prestress_time': 5,
-        'gc': 1.5,
-        'gs': 1.15,
-        'gp': 1.15,
         'As1': 0,
         'As2': 0,
         'Ap': 0,
@@ -29,41 +21,20 @@ class ConcreteSection(Section):
         'M': 0
     }
 
-    def __init__(self, concrete: Concrete, steel_s: ReinforcementSteel, steel_p: PrestressSteel, **kwargs):
+    def __init__(self, concrete: Concrete = concrete_default,
+                 steel_s: ReinforcementSteel = passive_steel_default,
+                 steel_p: PrestressSteel = prestress_steel_default,
+                 **kwargs):
+
         # MATERIAL
         self.concrete = concrete
         self.passive_steel = steel_s
         self.prestress_steel = steel_p
 
-        self.fck = kwargs.get('fck', self.kwDefaults['fck'])
-        self.s = kwargs.get('s', self.kwDefaults['s'])  # cement type
-        self.prestress_time = kwargs.get('prestress_time', self.kwDefaults['prestress_time'])
-        self.B_cc = self.Bcc()
-        self.f_ckt = self.fck_t()  # time dependent characteristic strength
-        self.f_cm = self.fcm()  # average strength
-        self.f_cmt = self.fcm_t()  # time dependent average strength
-        self.f_ctm = self.fctm()  # average tension strength
-        self.f_ctmt = self.fctm_t()  # time dependent average tension strength
-
-        self.fyk = kwargs.get('fyk', self.kwDefaults['fyk'])
-        self.fpk = kwargs.get('fpk', self.kwDefaults['fpk'])
-
-        self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3  # secant Young's modulus
-        self.E_cmt = self.Ecm_t()  # time dependent secant Young's modulus
-        self.Es = kwargs.get('Es', self.kwDefaults['Es'])  # 210,000Mpa
-        self.Ep = kwargs.get('Ep', self.kwDefaults['Ep'])  # 195,000Mpa
-
         self.ns = self.passive_steel.Es / self.concrete.Ecm
         self.n_st = self.passive_steel.Es / self.concrete.E_cmt
         self.np = self.prestress_steel.Ep / self.concrete.Ecm
         self.n_pt = self.prestress_steel.Ep / self.concrete.E_cmt
-        # self.epsilon_c2 = self.eps_c2()
-        self.HR = 25  # relative moisture (%)
-
-        # MATERIAL COEFFICIENTS
-        self.gc = kwargs.get('gc', self.kwDefaults['gc'])
-        self.gs = kwargs.get('gs', self.kwDefaults['gs'])
-        self.gp = kwargs.get('gp', self.kwDefaults['gp'])
 
         # REINFORCEMENT AREA
         self.As1 = kwargs.get('As1', self.kwDefaults['As1'])
@@ -113,21 +84,20 @@ class ConcreteSection(Section):
         ########################################################################################
         
         -------------------------------MATERIALS------------------------------------------------
-        fyk: passive steel characteristic strength.................................{self.fyk} Mpa
-        fpk: pre-stress steel characteristic strength..............................{self.fpk} Mpa
+        CONCRETE
+        {self.concrete.__str__()}
         
-        Es: passive steel Young's modulus..........................................{self.Es} Mpa
-        Ep: pre-stress steel Young's modulus.......................................{self.Ep} Mpa
+        PASSIVE STEEL REINFORCEMENT
+        {self.passive_steel.__str__()}
+        
+        PRESTRESS STEEL REINFORCEMENT
+        {self.prestress_steel.__str__()}
+        
         MISCELLANEOUS
         ns: passive steel homogenization coefficient...............................{self.ns} -adim-
         n_st: time dependent passive steel homogenization coefficient..............{self.n_st} -adim-
         np: pre-stress steel homogenization coefficient............................{self.np} -adim-
         n_pt: time dependent active steel homogenization coefficient...............{self.n_pt} -adim-
-        s: cement type for time-dependent calculations (0.2, 0.25, 0.38)...........{self.s} -adim-
-        prestress_time: days after concrete pouring when pre-stress is applied.....{self.prestress_time} days
-        gc: concrete strength reduction coefficient................................{self.gc} -adim-
-        gs: steel strength reduction coefficient...................................{self.gs} -adim-
-        gp: pre-stress steel strength reduction coefficient........................{self.gp} -adim-
         
         REINFORECEMENT
         As1: passive steel area in the compression part of the beam................{self.As1} mm2
@@ -190,50 +160,44 @@ class ConcreteSection(Section):
         """
         return string
 
-    def __upd_dep_attrs(self):
-        """ updates all dependent attributes"""
+    def __updt_dep__attrs(self) -> None:
+        """updates dependent attrs"""
+        self.ns = self.passive_steel.Es / self.concrete.Ecm
+        self.n_st = self.passive_steel.Es / self.concrete.E_cmt
+        self.np = self.prestress_steel.Ep / self.concrete.Ecm
+        self.n_pt = self.prestress_steel.Ep / self.concrete.E_cmt
 
-        self.B_cc = self.Bcc()
-        self.f_ckt = self.fck_t()
-        self.f_cm = self.fcm()
-        self.f_cm = self.fcm()  # average strength
-        self.f_cmt = self.fcm_t()  # time dependent average strength
-        self.f_ctm = self.fctm()  # average tension strength
-        self.f_ctmt = self.fctm_t()  # time dependent average tension strength
-        self.Ecm = 22 * pow(self.fcm() * 0.1, 0.3) * 1E3
-        self.E_cmt = self.Ecm_t()  # time dependent secant Young's modulus
-        self.ns = self.Es / self.Ecm
-        self.np = self.Ep / self.Ecm
-        self.n_st = self.Es / self.E_cmt
-        self.n_pt = self.Ep / self.E_cmt
         self.Ac = self.bruteArea()
         self.Q_xtop = self.Qx_top()
-        self.I_xtop = self.Ix_top()
         self.y_cen = self.ycentroid()
-        self.ecc = self.e()
+        self.I_xtop = self.Ix_top()
         self.Ixo = self.Ix0()
         self.Wxo1 = self.Wx01()
         self.Wxo2 = self.Wx02()
+        self.ecc = self.e()
+
         self.hmgSect = self.hmgSection()
         self.hmgSect_t = self.hmgSection_t()
         self.hmgSect_y = self.hmgSection_y(self.y0)
+
         self.crv = self.k()  # CURVATURE
-        self.crv_t = self.k_t()
+        self.crv_t = self.k_t()  # time-dep curvature
+        self.crv_cr = self.k_cr()  # cracked curvature
         self.epsilon_c0 = self.eps_0()  # TOP FIBRE'S STRAIN
         self.epsilon_c0t = self.eps_0_t()  # time-dep top fibre's strain
+        self.epsilon_c0cr = self.eps_0_cr()  # cracked section top fibre's strain
 
-    def set(self, kwargs):
+    def set(self, default=False, concrete: Concrete = concrete_default,
+            passive_steel: ReinforcementSteel = passive_steel_default,
+            prestress_steel: PrestressSteel = prestress_steel_default,
+            **kwargs):
         """sets attributes to the values passed in a dict"""
-
-        if kwargs!=None:
-            for key in kwargs:
-                self.__dict__[key] = kwargs[key]
-
+        if default:
+            for k in self.kwDefaults:
+                self.__dict__[k] = self.kwDefaults[k]
         else:
-            for key in self.kwDefaults:
-                self.__dict__[key] = self.kwDefaults[key]
-
-        self.__upd_dep_attrs()
+            for k in kwargs:
+                self.__dict__[k] = kwargs[k]
 
     # -------------ABSTRACT METHODS--------------
 
@@ -291,38 +255,6 @@ class ConcreteSection(Section):
             return 0
 
     # ------------CONCRETE METHODS---------------------
-    def Bcc(self):
-        """time dependent scalar that reduces concrete strength for a time t
-        between 3 and 28 days
-        """
-        return exp(self.s * (1 - pow(28 / self.prestress_time, 0.5)))
-
-    def fcm(self):
-        """ average concrete compression strength"""
-        return self.fck + 8
-
-    def fcm_t(self):
-        """time-dependent average concrete compression strength"""
-        return self.B_cc * self.f_cm
-
-    def fctm(self):
-        """average concrete tensile strength"""
-        if self.fck <= 50:
-            return 0.30 * pow(self.fck, 2 / 3)
-        else:
-            return 2.12 * log(1 + self.f_cm * 0.1)
-
-    def fctm_t(self):
-        """average time-dependent concrete tensile strength"""
-        return self.B_cc * self.f_ctm
-
-    def fck_t(self):
-        """time-dependent concrete characteristic compression strength. t in days"""
-        return self.B_cc * self.fck
-
-    def Ecm_t(self):
-        """time-dependent secant concrete elastic modulus"""
-        return pow(self.f_cmt / self.f_cm, 0.3) * self.Ecm
 
     def e(self):
         """distance from the centroid to the pre-tensioned steel centroid"""
@@ -390,7 +322,7 @@ class ConcreteSection(Section):
 
     def stress_t(self, y):
         """stress at any point y to section's height"""
-        return self.eps_t(y) * self.E_cmt
+        return self.eps_t(y) * self.concrete.E_cmt
 
     # HOMOGENIZED SECTION METHODS
     def hmgSection(self):

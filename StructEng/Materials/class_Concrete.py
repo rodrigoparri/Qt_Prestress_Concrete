@@ -5,10 +5,10 @@ from math import exp, log, sqrt
 class Concrete:
 
     kwDefaults = {
-        'fck': 35,
+        'fck': 30,
         'gc': 1.5,  # concrete safety coefficient
-        'h0': 0,
-        's': 'S',  # S, N, R
+        'h0': 100,  # theoretical element dimension (mm). Must be changed to its actual value at section init
+        'cem_type': 'N',  # cement type S, N, R
         'prestress_time': 7,
         'HR': 25,
         'T': 25,  # time-weighted average temperature the concrete will be exposed to
@@ -18,9 +18,9 @@ class Concrete:
     def __init__(self, **kwargs):
         self.fck = kwargs.get('fck', self.kwDefaults['fck'])
         self.gc = kwargs.get('gc', self.kwDefaults['gc'])
-        self.h_0 = kwargs.get('h0', self.kwDefaults['h0'])
-        self.s = kwargs.get('s', self.kwDefaults['s'])
+        self.h0 = kwargs.get('h0', self.kwDefaults['h0'])
         self.prestress_time = kwargs.get('prestress_time', self.kwDefaults['prestress_time'])
+        self.cem_type = kwargs.get('cem_type', self.kwDefaults['cem_type'])
         self.HR = kwargs.get('HR', self.kwDefaults['HR'])
         self.T = kwargs.get('T', self.kwDefaults['T'])
         self.life_exp = kwargs.get('life_exp', self.kwDefaults['life_exp'])
@@ -28,6 +28,7 @@ class Concrete:
         # current stress applied to the material
         self.sigma_c = 0
         # strength attributes
+        self.s = self.s_cem()
         self.B_cc = self.Bcc()
         self.f_ckt = self.fck_t()
         self.f_cm = self.fcm()
@@ -79,7 +80,7 @@ class Concrete:
         YIELD STRAIN
         epsilon_c2: concrete yield strain parable-rectangle model..................{self.epsilon_c2} -adim-
                 
-        CREEP METHODS
+        CREEP METHODS AND ATTRIBUTES
         phi_t: time-dependent creep coefficient....................................{self.phi_t} -adim-
         phi_nl: time-dependent non-linear creep coefficient........................{self.phi_nl} -adim-
         phi_0: basic creep coefficient.............................................{self.phi_0} -adim-
@@ -98,25 +99,69 @@ class Concrete:
 
         return string
 
-    def set(self, **kwargs):
-        self.__init__(**kwargs)
+    def __updt_dep_attrs(self) -> None:
+        self.s = self.s_cem()
+        self.B_cc = self.Bcc()
+        self.f_ckt = self.fck_t()
+        self.f_cm = self.fcm()
+        self.f_cmt = self.fcm_t()
+        self.f_ctm = self.fctm()
+        self.f_ctmt = self.fctm_t()
+        # Young modulus attrs
+        self.E_cm = self.Ecm()
+        self.E_c = self.Ec()
+        self.E_cmt = self.Ecm_t()
+        # stain attrs
+        self.epsilon_c2 = self.eps_c2()
+        # strength modifier attrs (used in creep calculations)
+        self.alpha_ = self.alpha()
+        self.alpha_1 = self.alpha_n(0.7)
+        self.alpha_2 = self.alpha_n(0.2)
+        self.alpha_3 = self.alpha_n(0.5)
 
-    def Bcc(self):
-        """time dependent scalar that reduces concrete strength for a time t
-        between 3 and 28 days
-        """
-        if self.s == 'S':
-            s = 0.2
-        elif self.s == 'N':
-            s = 0.25
-        elif self.s == 'R':
-            s = 0.38
+        self.t_0T = self.t0T()
+        self.t_0 = self.t0()
+
+        # terms for basic creep coefficient
+        self.phi_HR = self.phiHR()
+        self.B_fcm = self.Bfcm()
+        self.B_t0 = self.Bt0()
+        self.B_ct = self.Bc_t()
+        # basic creep coefficient
+        self.phi_0 = self.phi0()
+        # linear creep coefficient
+        self.phi_t = self.phi_time()
+        # non-linear creep coefficient
+        self.phi_nl = self.phi_non_lin()
+
+    def set(self, default: bool=False, **kwargs) -> None:
+        if default:
+            for k in self.kwDefaults:
+                self.__dict__[k] = self.kwDefaults[k]
+        else:
+            for k in kwargs:
+                self.__dict__[k] = kwargs[k]
+
+        self.__updt_dep_attrs()
+
+    def s_cem(self) -> float:
+        """coefficient that depends on cement type"""
+        if self.cem_type == 'R':
+            return 0.2
+        elif self.cem_type == 'N':
+            return 0.25
+        elif self.cem_type == 'S':
+            return 0.38
         else:
             raise ValueError
 
-        return exp(s * (1 - pow(28 / self.prestress_time, 0.5)))
+    def Bcc(self) -> float:
+        """time dependent scalar that reduces concrete strength for a time t
+        between 3 and 28 days
+        """
+        return exp(self.s * (1 - pow(28 / self.prestress_time, 0.5)))
 
-    def fcm(self):
+    def fcm(self) -> int:
         """ average concrete compression strength"""
         return self.fck + 8
 
@@ -126,10 +171,12 @@ class Concrete:
 
     def fctm(self):
         """average concrete tensile strength"""
-        if self.fck <= 50:
+        if 0 < self.fck <= 50:
             return 0.30 * pow(self.fck, 2 / 3)
-        else:
+        elif self.fck > 50:
             return 2.12 * log(1 + self.f_cm * 0.1)
+        else:
+            raise ValueError
 
     def fctm_t(self):
         """average time-dependent concrete tensile strength"""
@@ -159,11 +206,11 @@ class Concrete:
 
 # CREEP METHODS
     def alpha(self):
-        if self.s == 'S':
+        if self.cem_type == 'S':
             return -1
-        elif self.s == 'N':
+        elif self.cem_type == 'N':
             return 0
-        elif self.s == 'R':
+        elif self.cem_type == 'R':
             return 1
         else:
             raise ValueError
@@ -177,7 +224,7 @@ class Concrete:
         """coefficient that takes into account the relative humidity over the
         basic creep coefficient"""
         num = 1 - self.HR * 0.01
-        dem = 0.1 * pow(self.h_0, 1 / 3)
+        dem = 0.1 * pow(self.h0, 1 / 3)
 
         if 0 < self.f_cm <= 35:
             return 1 + num / dem
@@ -199,7 +246,7 @@ class Concrete:
     def B_H(self):
         """Coefficient depending on relative humidity (%) and the theoretical
         element size (mm)"""
-        a = 1.5 * (1 + pow(0.012 * self.HR, 18) * self.h_0)
+        a = 1.5 * (1 + pow(0.012 * self.HR, 18) * self.h0)
         Bh = a + 250
         if 0 < self.f_cm <= 35:
             if Bh <= 1500:
@@ -245,3 +292,17 @@ class Concrete:
         return self.phi_t * exp(1.5 * (self.sigma_c / self.f_ckt) - 0.45)
 
 # SHRINKAGE METHODS
+
+
+if __name__ == '__main__':
+    attrs = {
+        'fck': 40,
+        'gc': 1.5,  # concrete safety coefficient
+        'h0': 300,
+        's': 'N',  # S, N, R
+        'prestress_time': 5,
+        'HR': 45,
+        'T': 17,  # time-weighted average temperature the concrete will be exposed to
+        'life_exp': 50  # life expectancy in years
+    }
+    concrete = Concrete(**attrs)
