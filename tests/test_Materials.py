@@ -26,6 +26,8 @@ class TestConcrete(unittest.TestCase):
         default_dict = self.default_concrete.__dict__
         # set default concrete to kwattrs
         self.default_concrete.set(**self.kwattrs)
+        # make sure  concrete is set to kwargs
+        self.concrete.set(**self.kwattrs)
         # check if default_concrete and concrete have the same attrs
         self.assertEqual(self.default_concrete.__dict__, self.concrete.__dict__)
 
@@ -139,10 +141,17 @@ class TestConcrete(unittest.TestCase):
         self.concrete.set(**self.kwattrs)
 
     def test_t0_returns_correctly(self):
-        pass
+        t0 = self.concrete.t_0T * pow(9/(2+self.concrete.t_0T ** 1.2)+1, self.concrete.alpha_)
+        if 0 < t0 <= 0.5:
+            self.assertEqual(self.concrete.t_0, 0.5)
+        elif t0 > 0.5:
+            self.assertEqual(self.concrete.t_0, t0)
+        else:
+            self.fail()
 
     def test_t0T_returns_correctly(self):
-        pass
+        t0T = exp(-(4000/(273 + self.concrete.T)-13.65)) * (28 - self.concrete.prestress_time)
+        self.assertEqual(self.concrete.t_0T, t0T)
 
     def test_Bc_t_returns_correctly(self):
         num = self.concrete.t_0T - self.concrete.t_0
@@ -150,8 +159,16 @@ class TestConcrete(unittest.TestCase):
 
         self.assertEqual(self.concrete.B_ct, pow(num / dem, 0.3))
 
+    def test_phi0_returns_correctly(self):
+        phi0 = self.concrete.phi_HR * self.concrete.B_fcm * self.concrete.B_t0
+        self.assertEqual(self.concrete.phi_0, phi0)
+
     def test_phi_time_returns_correctly(self):
-        pass
+        phi_t = self.concrete.phi_0 * self.concrete.B_ct
+        self.assertEqual(self.concrete.phi_t, phi_t)
 
     def test_phi_non_lin_returns_correctly(self):
-        pass
+        self.concrete.set(sigma_c=30)
+        phi_nl = self.concrete.phi_t * exp(1.5 * (self.concrete.sigma_c / self.concrete.f_ckt - 0.45))
+        self.assertEqual(self.concrete.phi_nl, phi_nl)
+        self.concrete.set(sigma_c=0)

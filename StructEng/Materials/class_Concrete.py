@@ -270,7 +270,7 @@ class Concrete:
     def t0(self):
         """the cement type effects over the creep coefficient can be taken into account modifying the loading age
         t0 according to the next expression"""
-        to = self.t_0T * pow(9 / 2 + pow(self.t_0T, 1.2) + 1, self.alpha_)
+        to = self.t_0T * pow(9 / (2 + pow(self.t_0T, 1.2)) + 1, self.alpha_)
         if to >= 0.5:
             return to
         elif 0 <= to < 0.5:
@@ -280,7 +280,7 @@ class Concrete:
 
     def t0T(self):
         """loading age adjusted that replaces t in the corresponding equations"""
-        return exp(4000 / (273 + self.T) - 13.65) * self.life_exp * 365
+        return exp(-(4000 / (273 + self.T) - 13.65)) * (28 - self.prestress_time)
 
     def phi0(self):
         return self.phi_HR * self.B_fcm * self.B_t0
@@ -289,7 +289,7 @@ class Concrete:
         return self.phi_0 * self.B_ct
 
     def phi_non_lin(self):
-        return self.phi_t * exp(1.5 * (self.sigma_c / self.f_ckt) - 0.45)
+        return self.phi_t * exp(1.5 * (self.sigma_c / self.f_ckt - 0.45))
 
 # SHRINKAGE METHODS
 
