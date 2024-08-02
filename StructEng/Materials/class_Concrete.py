@@ -12,7 +12,7 @@ class Concrete:
         'cem_type': 'N',  # cement type S, N, R
         'temperature_dependent': False,  # set to True if temperature effects have to be taken into account
         'prestress_time': 7,  # time in days from concrete pouring when prestress is applied
-        'T_data': tuple(),  # Hourly concrete temperature data during curing
+        'T_data': tuple(),  # daily concrete temperature data during curing
         'HR': 25,
         'delayed_effects_time': 25550  # time in days to calculate delayed time effects. 70 years in days by default
     }
@@ -142,10 +142,10 @@ class Concrete:
         """private t_0 (cement-dependent initial prestress time) attribute initialization"""
         if self.temperature_dependent:
             if self.T_data == self.kwDefaults['T_data']:
-                raise AttributeError('set -T_data- attribute to your hourly temperature data')
+                raise AttributeError('set -T_data- attribute to your daily temperature data')
             else:
                 # set t_0T using the temperature data from concrete pouring to prestress application
-                self.t_0T = self.tT(self.T_data[:24 * self.prestress_time])
+                self.t_0T = self.tT(self.T_data[:self.prestress_time])
                 self.t_0_cem = self.t0_cem(self.t_0T)  # set t_0_cem to temperature dependent value
         else:
             self.t_0T = 0
@@ -303,7 +303,7 @@ class Concrete:
         """temperature-adjusted loading age that replaces t in the corresponding equations. Data of time and
         temperature at each time T(t) must be provided. To calculate t_0T you should sum from the first data point
         (at concrete pouring) to the point at prestress application.
-         :param T_data: hourly temperature data during concrete curing as numpy ndarray.
+         :param T_data: daily temperature data during concrete curing as numpy ndarray.
          """
         np_T_data = np.array(T_data)
         exponential_vector = np.exp(-4000/(273+np_T_data)+13.65)
