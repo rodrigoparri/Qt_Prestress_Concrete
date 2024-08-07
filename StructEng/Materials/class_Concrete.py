@@ -31,7 +31,6 @@ class Concrete:
         # current stress applied to the material
         self.sigma_c = 0
 
-
         # strength attributes
         self.s = self.s_cem()
         self.B_cc = self.Bcc()
@@ -224,7 +223,8 @@ class Concrete:
             return 2 + 0.85 * pow(self.fck - 50, 0.53)
 
 # CREEP METHODS
-    def alpha(self):
+    def alpha(self) -> int:
+        """ exponent that depends on the cement type"""
         if self.cem_type == 'S':
             return -1
         elif self.cem_type == 'N':
@@ -234,12 +234,12 @@ class Concrete:
         else:
             raise ValueError('not a valid cement type. try S, N or R introduced as strings')
 
-    def alpha_n(self, n):
+    def alpha_n(self, n:float) -> float:
         """factors that take into account the influence of concrete's strength
         :param n: can be 0.7, 0.2, 0.5"""
         return pow(35/self.f_cm, n)
 
-    def phiHR(self):
+    def phiHR(self) -> float:
         """coefficient that takes into account the relative humidity over the
         basic creep coefficient"""
         num = 1 - self.HR * 0.01
@@ -252,12 +252,12 @@ class Concrete:
         else:
             raise ValueError
 
-    def Bfcm(self):
+    def Bfcm(self) -> float:
         """coefficient that takes into account the concrete's strength over the
         basic creep coefficient"""
         return 16.8 / sqrt(self.f_cm)
 
-    def Bt0(self, t0):
+    def Bt0(self, t0: float) -> float:
         """coefficient that takes into account the loading age over the
         basic creep coefficient
         :param t0: time prestress after concrete pouring in days. t0 can be temperature dependent"""
@@ -281,13 +281,15 @@ class Concrete:
             else:
                 return a
 
-    def Bc_t(self, t, t0):
-        """coefficient describing creep development over time after loading"""
+    def Bc_t(self, t: int, t0: float) -> float:
+        """coefficient describing creep development over time after loading
+        :param t: concrete's age in days when creep is being calculated
+        :param t0: concrete's age in days when load is applied"""
         num = t - t0
         dem = self.B_H() + num
         return pow(num / dem, 0.3)
 
-    def t0_cem(self, t0T):
+    def t0_cem(self, t0T: float) -> float:
         """the cement type effects over the creep coefficient can be taken into account modifying the loading age
         t0 according to the next expression
         :param t0T: concrete age in days can be temperature adjusted or not"""
@@ -309,13 +311,21 @@ class Concrete:
         exponential_vector = np.exp(-4000/(273+np_T_data)+13.65)
         return np.sum(exponential_vector).item()
 
-    def phi0(self, t0):
+    def phi0(self, t0: float) -> float:
+        """basic creep coefficient according to spanish structural code
+        :param t0: concrete's age in days when load is applied"""
         return self.phi_HR * self.B_fcm * self.Bt0(t0)
 
-    def phi_time(self, t, t0):
+    def phi_time(self, t: int, t0: float) -> float:
+        """time dependent creep coefficient
+            :param t: concrete's age in days when creep is being calculated
+            :param t0: concrete's age in days when load is applied"""
         return self.phi0(t0) * self.Bc_t(t, t0)
 
-    def phi_non_lin(self, t, t0):
+    def phi_non_lin(self, t: int, t0: float) -> float:
+        """time dependent non-linear creep coefficient
+                :param t: concrete's age in days when creep is being calculated
+                :param t0: concrete's age in days when load is applied"""
         return self.phi_time(t, t0) * exp(1.5 * (self.sigma_c / self.f_ckt - 0.45))
 
 # SHRINKAGE METHODS
