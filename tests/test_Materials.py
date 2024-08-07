@@ -167,7 +167,6 @@ class TestConcrete(unittest.TestCase):
         Bh = a + 250 * self.concrete.alpha_3
         if Bh >= 1500 * self.concrete.alpha_3:
             Bh = 1500 * self.concrete.alpha_3
-        print(self.concrete.B_H())
         self.assertEqual(self.concrete.B_H(), Bh)
 
         self.concrete.set(**self.kwattrs)
@@ -182,7 +181,6 @@ class TestConcrete(unittest.TestCase):
             self.assertEqual(self.concrete.t_0_cem, 0.5)
         elif t0 > 0.5:
             self.assertEqual(self.concrete.t_0T, 0)
-            print(f'non temp dep: {t0}')
             self.assertEqual(self.concrete.t_0_cem, t0)
         else:
             self.fail()
@@ -193,11 +191,9 @@ class TestConcrete(unittest.TestCase):
         t0 = t_0T * pow(9 / (2 + t_0T ** 1.2) + 1, self.concrete.alpha_)
         if 0 < t0 <= 0.5:
             self.assertEqual(self.concrete.t_0T, t_0T)
-            print(self.concrete.t_0_cem)
             self.assertEqual(self.concrete.t_0_cem, 0.5)
         elif t0 > 0.5:
             self.assertEqual(self.concrete.t_0T, t_0T)
-            print(f'non temp dep: {t0}')
             self.assertEqual(self.concrete.t_0_cem, t0)
         else:
             self.fail()
@@ -219,7 +215,6 @@ class TestConcrete(unittest.TestCase):
     def test_phi0_returns_correctly(self):
         self.concrete.set(temperature_dependent=True)
         phi0 = self.concrete.phi_HR * self.concrete.B_fcm * self.concrete.B_t0
-
         self.assertEqual(self.concrete.phi_0, phi0)
 
         self.concrete.set(temperature_dependent=False)
@@ -229,16 +224,19 @@ class TestConcrete(unittest.TestCase):
     def test_phi_time_returns_correctly(self):
         self.concrete.set(temperature_dependent=True)
         phi_t = self.concrete.phi_0 * self.concrete.B_ct
-        print(phi_t)
         self.assertEqual(self.concrete.phi_t, phi_t)
 
         self.concrete.set(temperature_dependent=False)
         phi_t = self.concrete.phi_0 * self.concrete.B_ct
-        print(phi_t)
         self.assertEqual(self.concrete.phi_t, phi_t)
 
     def test_phi_non_lin_returns_correctly(self):
-        self.concrete.set(sigma_c=30)
+        self.concrete.set(sigma_c=30, temperature_dependent=True)
+        phi_nl = self.concrete.phi_t * exp(1.5 * (self.concrete.sigma_c / self.concrete.f_ckt - 0.45))
+        self.assertEqual(self.concrete.phi_nl, phi_nl)
+        self.concrete.set(sigma_c=0)
+
+        self.concrete.set(sigma_c=35, temperature_dependent=False)
         phi_nl = self.concrete.phi_t * exp(1.5 * (self.concrete.sigma_c / self.concrete.f_ckt - 0.45))
         self.assertEqual(self.concrete.phi_nl, phi_nl)
         self.concrete.set(sigma_c=0)
