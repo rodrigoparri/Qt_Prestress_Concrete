@@ -15,24 +15,25 @@ class TConcSect(ConcreteSection):
         super().__init__(**kwargs)
 
     def __str__(self):
-        str =  f"""
+        str = f"""
         -----------------------PARTICULAR PROPERTIES-----------------------------------------
-        t1: flange thickness.......................................................{self.fck} mm
-        t: web thickness...........................................................{self.fck} mm
+        t2: flange slope height....................................................{self.t2} mm
+        t1: flange thickness.......................................................{self.t1} mm
+        t: web thickness...........................................................{self.t} mm
         """
         return super().__str__() + str
 
-    def set(self, kwargs):
-        if kwargs != None:
-            self.t2 = kwargs.get('t2', self.kwTSectDefaults['t2'])
-            self.t1 = kwargs.get('t1', self.kwTSectDefaults['t1'])
-            self.t = kwargs.get('t', self.kwTSectDefaults['t'])
-        else:
+    def set(self, default: bool = False, **kwargs):
+        if default:
             self.t2 = self.kwTSectDefaults['t2']
             self.t1 = self.kwTSectDefaults['t1']
             self.t = self.kwTSectDefaults['t']
+        else:
+            self.t2 = kwargs.get('t2', self.kwTSectDefaults['t2'])
+            self.t1 = kwargs.get('t1', self.kwTSectDefaults['t1'])
+            self.t = kwargs.get('t', self.kwTSectDefaults['t'])
 
-        super().set(kwargs)
+        super().set(default, **kwargs)
 
     def bruteArea(self):
         # top rectangle area

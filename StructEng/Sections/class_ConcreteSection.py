@@ -17,8 +17,6 @@ class ConcreteSection(Section):
         'ds1': 50,
         'ds2': 950,
         'dp': 850,
-        'N': 0,
-        'M': 0
     }
 
     def __init__(self, concrete: Concrete = concrete_default,
@@ -31,9 +29,9 @@ class ConcreteSection(Section):
         self.passive_steel = steel_s
         self.prestress_steel = steel_p
 
-        self.ns = self.passive_steel.Es / self.concrete.Ecm
+        self.ns = self.passive_steel.Es / self.concrete.E_cm
         self.n_st = self.passive_steel.Es / self.concrete.E_cmt
-        self.np = self.prestress_steel.Ep / self.concrete.Ecm
+        self.np = self.prestress_steel.Ep / self.concrete.E_cm
         self.n_pt = self.prestress_steel.Ep / self.concrete.E_cmt
 
         # REINFORCEMENT AREA
@@ -45,6 +43,9 @@ class ConcreteSection(Section):
         self.b = kwargs.get('b', self.kwDefaults['b'])
         self.h = kwargs.get('h', self.kwDefaults['h'])
         self.Ac = self.bruteArea()
+
+        self.__init_h0()  # initialize concrete.h0 with actual section values
+
         self.Q_xtop = self.Qx_top()
         self.y_cen = self.ycentroid()
         self.I_xtop = self.Ix_top()
@@ -56,26 +57,12 @@ class ConcreteSection(Section):
         self.ds1 = kwargs.get('ds1', self.kwDefaults['ds1'])
         self.ds2 = kwargs.get('ds2', self.kwDefaults['ds2'])
         self.dp = kwargs.get('dp', self.kwDefaults['dp'])
-        self.dc = 0
-        self.y0 = 0
+
         self.ecc = self.e()  # active reinforcement eccentricity
 
         # HOMOGENIZED SECTION
         self.hmgSect = self.hmgSection()
         self.hmgSect_t = self.hmgSection_t()
-        self.hmgSect_y = self.hmgSection_y(self.y0)
-
-        # LOADS
-        self.N = kwargs.get('N', self.kwDefaults['N'])
-        self.M = kwargs.get('M', self.kwDefaults['M'])
-
-        # STRAIN
-        self.crv = self.k()  # CURVATURE
-        self.crv_t = self.k_t()  # time-dep curvature
-        self.crv_cr = self.k_cr()  # cracked curvature
-        self.epsilon_c0 = self.eps_0()  # TOP FIBRE'S STRAIN
-        self.epsilon_c0t = self.eps_0_t()  # time-dep top fibre's strain
-        self.epsilon_c0cr = self.eps_0_cr()  # cracked section top fibre's strain
 
     def __str__(self):
         string = f"""
@@ -139,35 +126,20 @@ class ConcreteSection(Section):
         time-dep hmg_Wxo1:.........................................................{self.hmgSect_t['Wxo1']} mm3
         time-dep hmg_Wxo2:.........................................................{self.hmgSect_t['Wxo2']} mm3
         
-        CRACKED HOMOGENIZED SECTION
-        hmgA: cracked homogenized area.............................................{self.hmgSect_y['A']} mm2
-        hmgQ_xtop: cracked homogenized static moment from top fibre................{self.hmgSect_y['Q']} mm3
-        hmgI_xtop: cracked homogenized moment of inertia from top fibre............{self.hmgSect_y['I']} mm4
-        hmgI_xo: cracked homogenized moment of inertia from centroid...............{self.hmgSect_y['Ixo']} mm4
-        hmg_y_cen: cracked homogenized centroid y coordinate form top fibre........{self.hmgSect_y['y_cen']} mm
-        hmg_ecc: cracked homogenized active reinforcement eccentricity.............{self.hmgSect_y['ecc']} mm
-        hmg_Wxo1: cracked homogenized elastic modulus (top fibre)..................{self.hmgSect_y['Wxo1']} mm3
-        hmg_Wxo2: cracked homogenized elastic modulus (bottom fibre)...............{self.hmgSect_y['Wxo2']} mm3
-        
-        -------------------------------LOADS------------------------------------------------
-        N: normal force applied in the section's centroid..........................{self.N} N
-        M: total moment applied to the section.....................................{self.M} mm*N
-        
-        ------------------------------STRAINS-----------------------------------------------
-        y0: height of the non-cracked section form the top fibre...................{self.y0} mm
-        k: signed curvature of the section.........................................{self.crv} mm-1
-        eps_0: signed strain of top fibre..........................................{self.epsilon_c0} -admin-
         """
         return string
 
     def __updt_dep__attrs(self) -> None:
         """updates dependent attrs"""
-        self.ns = self.passive_steel.Es / self.concrete.Ecm
+        self.ns = self.passive_steel.Es / self.concrete.E_cm
         self.n_st = self.passive_steel.Es / self.concrete.E_cmt
-        self.np = self.prestress_steel.Ep / self.concrete.Ecm
+        self.np = self.prestress_steel.Ep / self.concrete.E_cm
         self.n_pt = self.prestress_steel.Ep / self.concrete.E_cmt
 
         self.Ac = self.bruteArea()
+
+        self.__init_h0()
+
         self.Q_xtop = self.Qx_top()
         self.y_cen = self.ycentroid()
         self.I_xtop = self.Ix_top()
@@ -178,16 +150,11 @@ class ConcreteSection(Section):
 
         self.hmgSect = self.hmgSection()
         self.hmgSect_t = self.hmgSection_t()
-        self.hmgSect_y = self.hmgSection_y(self.y0)
 
-        self.crv = self.k()  # CURVATURE
-        self.crv_t = self.k_t()  # time-dep curvature
-        self.crv_cr = self.k_cr()  # cracked curvature
-        self.epsilon_c0 = self.eps_0()  # TOP FIBRE'S STRAIN
-        self.epsilon_c0t = self.eps_0_t()  # time-dep top fibre's strain
-        self.epsilon_c0cr = self.eps_0_cr()  # cracked section top fibre's strain
+    def __init_h0(self):
+        self.concrete.h0 = self.Ac / (self.h + self.b)
 
-    def set(self, default=False, concrete: Concrete = concrete_default,
+    def set(self, default: bool=False, concrete: Concrete = concrete_default,
             passive_steel: ReinforcementSteel = passive_steel_default,
             prestress_steel: PrestressSteel = prestress_steel_default,
             **kwargs):
@@ -197,7 +164,12 @@ class ConcreteSection(Section):
                 self.__dict__[k] = self.kwDefaults[k]
         else:
             for k in kwargs:
-                self.__dict__[k] = kwargs[k]
+                if k in self.__dict__:  # avoid adding new attributes
+                    self.__dict__[k] = kwargs[k]
+                else:
+                    raise AttributeError(f"{k} is not an attribute of class_ConcreteSection")
+
+        self.__updt_dep__attrs()
 
     # -------------ABSTRACT METHODS--------------
 
@@ -262,70 +234,108 @@ class ConcreteSection(Section):
 
     # -----------STRAIN SECTION METHODS ------------------
 
-    def k(self):
-        """signed curvature of the section"""
-        num = self.N * self.hmgSect['Q'] - self.M * self.hmgSect['A']
+    def k(self, N, M):
+        """signed curvature of the homogenized section
+        :param N: normal force
+        :param M: whole moment applied to the section
+        """
+        num = N * self.hmgSect['Q'] - M * self.hmgSect['A']
         dem = self.concrete.E_cm * (pow(self.hmgSect['Q'], 2) - self.hmgSect['A'] * self.hmgSect['I'])
         return num / dem
 
-    def k_t(self):
-        """time-dependet signed curvature of the section"""
-        num = self.N * self.hmgSect_t['Q'] - self.M * self.hmgSect_t['A']
+    def k_t(self, N, M):
+        """time-dependet signed curvature of the section
+        :param N: normal force
+        :param M: whole moment applied to the section
+        """
+        num = N * self.hmgSect_t['Q'] - M * self.hmgSect_t['A']
         dem = self.concrete.E_cmt * (pow(self.hmgSect_t['Q'], 2) - self.hmgSect_t['A'] * self.hmgSect_t['I'])
         return num / dem
 
-    def k_cr(self):
-        """curvature of the cracked section"""
-        num = self.hmgSect_y['Q'] * self.N - self.hmgSect_y['A']
-        dem = self.concrete.E_cm * (pow(self.hmgSect_y['Q'], 2) - self.hmgSect_y['A'] * self.hmgSect_y['I'])
+    def k_cr(self, N, M, y0):
+        """curvature of the cracked section
+        :param N: normal force
+        :param M: whole moment applied to the section
+        :param y0: depth of non-cracked part of the section
+        """
+        num = N * self.hmgSection_y(y0)['Q'] - M * self.hmgSection_y(y0)['A']
+        dem = self.concrete.E_cm * (pow(self.hmgSection_y(y0)['Q'], 2) - self.hmgSection_y(y0)['A'] * self.hmgSection_y(y0)['I'])
         return num / dem
 
-    def eps_0(self):  # test
-        """signed strain of top fibre"""
-        num = self.M * self.hmgSect['Q'] - self.hmgSect['I'] * self.N
+    def eps_0(self, N, M):  # test
+        """signed strain of top fibre
+        :param N: normal force
+        :param M: whole moment applied to the section
+        """
+        num = M * self.hmgSect['Q'] - self.hmgSect['I'] * N
         dem = self.concrete.E_cm * (pow(self.hmgSect['Q'], 2) - self.hmgSect['A'] * self.hmgSect['I'])
         return num / dem
 
-    def eps_0_t(self):  # test
-        """time-dependet signed strain of top fibre"""
-        num = self.M * self.hmgSect_t['Q'] - self.hmgSect_t['I'] * self.N
+    def eps_0_t(self, N, M):  # test
+        """time-dependet signed strain of top fibre
+        :param N: normal force
+        :param M: whole moment applied to the section
+        """
+        num = M * self.hmgSect_t['Q'] - self.hmgSect_t['I'] * N
         dem = self.concrete.E_cm * (pow(self.hmgSect_t['Q'], 2) - self.hmgSect_t['A'] * self.hmgSect_t['I'])
         return num / dem
 
-    def eps_0_cr(self):
-        num = self.hmgSect_y['Q'] * self.M - self.hmgSect_y['I'] * self.N
-        dem = self.concrete.E_cm * (pow(self.hmgSect_y['Q'], 2) - self.hmgSect_y['A'] * self.hmgSect_y['I'])
+    def eps_0_cr(self, N, M, y0):
+        """signed strain of top fibre of the cracked section
+        :param N: normal force
+        :param M: whole moment applied to the section
+        :param y0:  depth of non-cracked part of the section
+        """
+        num = self.hmgSection_y(y0)['Q'] * M - self.hmgSection_y(y0)['I'] * N
+        dem = self.concrete.E_cm * (pow(self.hmgSection_y(y0)['Q'], 2) - self.hmgSection_y(y0)['A'] * self.hmgSection_y(y0)['I'])
         return num / dem
 
-    def eps(self, y):
+    def eps(self, N, M, y):
         """strain at any point y of section's height
+        :param N: normal force
+        :param M: whole moment applied to the section
         :param y: distance from top fibre to evaluate strain at
         """
-        return self.epsilon_c0 + self.crv * y
+        return self.eps_0(N, M) + self.k(N, M) * y
 
-    def eps_t(self, y):
-        """time-dep strain at any point y to section's height"""
-        return self.epsilon_c0t + self.crv_t * y
+    def eps_t(self, N, M, y):
+        """time-dep strain at any point y to section's height
+        :param N: normal force
+        :param M: whole moment applied to the section
+        :param y: distance from top fibre to evaluate strain at
+        """
+        return self.eps_0_t(N, M) + self.k_t(N, M) * y
 
-    def eps_cr(self, y):
+    def eps_cr(self, N, M, y0, y):
         """strain at any point y of the section's height. The section is cracked, being the non-cracked portion
         height y0. M, N are the whole moment and normal force applied to the section respectively. before using
         this function change self.M, self.N to the correct values
-        :param y: point of the section's height to evaluate eps_y() at"""
-
-        return self.eps_0_cr() + self.crv_cr * y
+        :param N: normal force
+        :param M: whole moment applied to the section
+        :param y0:  depth of non-cracked part of the section
+        :param y: point of the section's height to evaluate eps_cr() at
+        """
+        return self.eps_0_cr(N, M, y0) + self.k_cr(N, M, y0) * y
 
     # STRESS METHODS
-    def stress(self, y):
-        """stress at any point y to section's height"""
-        return self.eps(y) * self.concrete.E_cm
+    def stress(self, N, M, y):
+        """stress at any point y to section's height
+        :param N: normal force
+        :param M: whole moment applied to the section
+        :param y: distance from top fibre to evaluate stress at
+        """
+        return self.eps(N, M, y) * self.concrete.E_cm
 
-    def stress_t(self, y):
-        """stress at any point y to section's height"""
-        return self.eps_t(y) * self.concrete.E_cmt
+    def stress_t(self, N, M, y):
+        """stress at any point y to section's height
+        :param N: normal force
+        :param M: whole moment applied to the section
+        :param y: distance from top fibre to evaluate strain at
+        """
+        return self.eps_t(N, M, y) * self.concrete.E_cmt
 
     # HOMOGENIZED SECTION METHODS
-    def hmgSection(self):
+    def hmgSection(self) -> dict:
         """dictionary {area, first moment of inertia, second moment of inertia}
         from the top fibre of the homogenized section"""
 
@@ -371,7 +381,7 @@ class ConcreteSection(Section):
 
         return hmg
 
-    def hmgSection_y(self, y):
+    def hmgSection_y(self, y) -> dict:
         """dictionary {Area, First moment of inertia, Second moment of inertia}
         from the top fibre to an arbitrary fibre a distance y from the top surface
         of the homogenized section. All homogenized area of steel reinforcement (passive and active)
@@ -421,7 +431,7 @@ class ConcreteSection(Section):
 
         return hmg
 
-    def hmgSection_t(self):
+    def hmgSection_t(self) -> dict:
         """dictionary {area, first moment of inertia, second moment of inertia}
         from the top fibre  of the homogenized section"""
 
@@ -467,7 +477,7 @@ class ConcreteSection(Section):
         return hmg
 
     # MAGNEL STRESS LIMIT
-    def magnel_stress_limit(self, Mi: float, Mf: float) -> bool:
+    def magnel_stress_limit(self, N: float, Mi: float, Mf: float) -> bool:
         """checks if a section meets tension limits according to spanish
         structural code. This is a short-term check. No cracking is taken into account.
         :param Mi: mm*N initial whole moment (external + prestress moments from top fibre
@@ -478,14 +488,12 @@ class ConcreteSection(Section):
         # loads introduced must be the total loads applied to the section (sum all your moments and normal forces)
         # moments must be calculated from the top fibre
         # initial load case stress
-        self.M = Mi
-        init_top_stress = self.stress_t(0)
-        init_bottom_stress = self.stress_t(self.h)
+        init_top_stress = self.stress_t(N, Mi, 0)
+        init_bottom_stress = self.stress_t(N, Mi, self.h)
 
         # final load case stress
-        self.M = Mf
-        final_top_stress = self.stress(0)
-        final_bottom_stress = self.stress(self.h)
+        final_top_stress = self.stress(N, Mf, 0)
+        final_bottom_stress = self.stress(N, Mf, self.h)
 
         init_top_check = (-0.45 * self.concrete.f_ckt) < init_top_stress < self.concrete.f_ctmt
         init_bottom_check = (-0.45 * self.concrete.f_ckt) < init_bottom_stress < self.concrete.f_ctmt

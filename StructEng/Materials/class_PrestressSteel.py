@@ -6,7 +6,7 @@ class PrestressSteel:
     kwDefaults = {
         'fpk': 1860,
         'gp': 1.5,
-        'Es': 195E3
+        'Ep': 195E3
     }
 
     def __init__(self, **kwargs):

@@ -8,7 +8,7 @@ class Concrete:
     kwDefaults = {
         'fck': 30,
         'gc': 1.5,  # concrete safety coefficient
-        'h0': 100,  # theoretical element dimension (mm). Must be changed to its actual value at section init
+        'h0': 100.0,  # theoretical element dimension (mm). Must be changed to its actual value at section init
         'cem_type': 'N',  # cement type S, N, R
         'temperature_dependent': False,  # set to True if temperature effects have to be taken into account
         'prestress_time': 7,  # time in days from concrete pouring when prestress is applied
@@ -45,25 +45,8 @@ class Concrete:
         self.E_cmt = self.Ecm_t()
         # stain attrs
         self.epsilon_c2 = self.eps_c2()
-        # strength modifier attrs (used in creep calculations)
-        self.alpha_ = self.alpha()
-        self.alpha_1 = self.alpha_n(0.7)
-        self.alpha_2 = self.alpha_n(0.2)
-        self.alpha_3 = self.alpha_n(0.5)
 
         self.__init_t_0()  # initialize prestress time adjusted to cement type
-
-        ## terms for basic creep coefficient
-        #self.phi_HR = self.phiHR()
-        #self.B_fcm = self.Bfcm()
-        #self.B_t0 = self.Bt0(self.t_0_cem)
-        #self.B_ct = self.Bc_t(self.delayed_effects_time, self.t_0_cem)
-        ## basic creep coefficient
-        #self.phi_0 = self.phi0(self.t_0_cem)
-        ## linear creep coefficient
-        #self.phi_t = self.phi_time(self.delayed_effects_time, self.t_0_cem)
-        ## non-linear creep coefficient
-        #self.phi_nl = self.phi_non_lin(self.delayed_effects_time, self.t_0_cem)
 
     def __str__(self):
         string = f"""
@@ -82,22 +65,7 @@ class Concrete:
 
         YIELD STRAIN
         epsilon_c2: concrete yield strain parable-rectangle model..................{self.epsilon_c2} -adim-
-                
-        CREEP METHODS AND ATTRIBUTES
-        phi_t: time-dependent creep coefficient....................................{self.phi_t} -adim-
-        phi_nl: time-dependent non-linear creep coefficient........................{self.phi_nl} -adim-
-        phi_0: basic creep coefficient.............................................{self.phi_0} -adim-
-        B_ct: time dependent scalar of time-dependent creep coefficient............{self.B_ct} -adim-
-        phi_HR: relative humidity component of the basic creep coefficient.........{self.phi_HR} -adim-
-        B_fcm: strength component of the basic creep coefficient...................{self.B_fcm} -adim-
-        B_t0: initial loading time component of the basic creep coefficient........{self.B_t0} -adim-
-        t_0_cem: cement dependent initial loading time.............................{self.t_0_cem} days
-        t_0T: age at loading time corrected as a function of temperature...........{self.t_0T} days
-        
-        alpha_: cement type-dependent exponent.....................................{self.alpha_} -adim-
-        alpha_1: factor taking into account concrete strength......................{self.alpha_1} -adim-
-        alpha_2: factor taking into account concrete strength......................{self.alpha_2} -adim-
-        alpha_3: factor taking into account concrete strength......................{self.alpha_3} -adim-
+     
         """
 
         return string
@@ -118,24 +86,8 @@ class Concrete:
         # stain attrs
         self.epsilon_c2 = self.eps_c2()
         # strength modifier attrs (used in creep calculations)
-        self.alpha_ = self.alpha()
-        self.alpha_1 = self.alpha_n(0.7)
-        self.alpha_2 = self.alpha_n(0.2)
-        self.alpha_3 = self.alpha_n(0.5)
 
         self.__init_t_0()
-
-        # terms for basic creep coefficient
-        self.phi_HR = self.phiHR()
-        self.B_fcm = self.Bfcm()
-        self.B_t0 = self.Bt0(self.t_0_cem)
-        self.B_ct = self.Bc_t(self.delayed_effects_time, self.t_0_cem)
-        # basic creep coefficient
-        self.phi_0 = self.phi0(self.t_0_cem)
-        # linear creep coefficient
-        self.phi_t = self.phi_time(self.delayed_effects_time, self.t_0_cem)
-        # non-linear creep coefficient
-        self.phi_nl = self.phi_non_lin(self.delayed_effects_time, self.t_0_cem)
 
     def __init_t_0(self) -> None:  # ultimate responsible for temperature dependent calculations
         """private t_0 (cement-dependent initial prestress time) attribute initialization"""
@@ -224,7 +176,7 @@ class Concrete:
 
 # CREEP METHODS
     def alpha(self) -> int:
-        """ exponent that depends on the cement type"""
+        """exponent that depends on the cement type"""
         if self.cem_type == 'S':
             return -1
         elif self.cem_type == 'N':
@@ -296,7 +248,7 @@ class Concrete:
         t0 according to the next expression
         :param t0T: concrete age in days can be temperature adjusted or not
         """
-        to = t0T * pow(9 / (2 + pow(t0T, 1.2)) + 1, self.alpha_)
+        to = t0T * pow(9 / (2 + pow(t0T, 1.2)) + 1, self.alpha())
         if to >= 0.5:
             return to
         elif 0 <= to < 0.5:
@@ -318,7 +270,7 @@ class Concrete:
         """basic creep coefficient according to spanish structural code
         :param t0: concrete's age in days when load is applied
         """
-        return self.phi_HR * self.B_fcm * self.Bt0(t0)
+        return self.phiHR() * self.Bfcm() * self.Bt0(t0)
 
     def phi_time(self, t: int, t0: float) -> float:
         """time dependent creep coefficient

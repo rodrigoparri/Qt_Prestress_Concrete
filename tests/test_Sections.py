@@ -15,16 +15,6 @@ class TestConcSect(unittest.TestCase):
 
 class TestRectSect(unittest.TestCase):
     kwargs = {
-        'fck' : 20,
-        'fyk' : 400,
-        'fpk' : 1750,
-        'Es' : 200E3,
-        'Ep' : 195E3,
-        's' : 0.25,
-        'prestress_time' : 7,
-        'gc' : 1.5,
-        'gs' : 1.15,
-        'gp' : 1.15,
         'As1' : 900,
         'As2' : 1800,
         'Ap' : 1000,
@@ -33,12 +23,12 @@ class TestRectSect(unittest.TestCase):
         'ds1' : 60,
         'ds2' : 740,
         'dp' : 600,
-        'N' : -1350E3,
-        'M' : -710E6
     }
+    N = -1350E3
+    M = -710E6
+
     RectBeam = RectConcSect(**kwargs)
     RectBeam_default = RectConcSect()
-
 
     def test_RectConcSect_created_correctly(self):
         self.assertIsInstance(self.RectBeam, RectConcSect)
@@ -51,7 +41,7 @@ class TestRectSect(unittest.TestCase):
         self.RectBeam.set(default=True)
         self.assertEqual(self.RectBeam.__dict__, self.RectBeam_default.__dict__)
 
-        self.RectBeam.set(self.kwargs)
+        self.RectBeam.set(default=False, **self.kwargs)
         self.assertEqual(self.RectBeam.__dict__, current_attrs)
 
     def test_bruteArea_returns_correct_value(self):
@@ -71,22 +61,22 @@ class TestRectSect(unittest.TestCase):
                                                                  * pow(self.kwargs['h'] / 2, 2))
 
     def test_ns_is_correct(self):
-        ns = self.kwargs['Es'] / self.RectBeam.Ecm
+        ns = self.RectBeam.passive_steel.Es / self.RectBeam.concrete.E_cm
         self.assertEqual(self.RectBeam.ns, ns)
 
     def test_np_is_correct(self):
-        np = self.kwargs['Ep'] / self.RectBeam.Ecm
+        np = self.RectBeam.prestress_steel.Ep / self.RectBeam.concrete.E_cm
         self.assertEqual(self.RectBeam.np, np)
 
     def test_hmgA_returns_correct_values(self):
-        self.RectBeam.set(self.kwargs)
+        self.RectBeam.set(default= False, **self.kwargs)
         hmgA = self.RectBeam.bruteArea() + (self.kwargs['As1'] + self.kwargs['As2']) * (self.RectBeam.ns - 1) \
         + self.kwargs['Ap'] * (self.RectBeam.np - 1)
         #print(hmgA)
         self.assertEqual(self.RectBeam.hmgSect['A'], hmgA)
 
     def test_hmgQ_returns_correct_values(self):
-        self.RectBeam.set(self.kwargs)
+        self.RectBeam.set(default= False, **self.kwargs)
         hmgQA = self.RectBeam.bruteArea() * self.kwargs['h'] / 2
         hmgQAs = (self.kwargs['As1'] * self.kwargs['ds1'] + self.kwargs['As2'] * self.kwargs['ds2']) \
         * (self.RectBeam.ns - 1)
@@ -96,7 +86,7 @@ class TestRectSect(unittest.TestCase):
         self.assertEqual(self.RectBeam.hmgSect['Q'], hmgQ)
 
     def test_hmgI_returns_correct_values(self):
-        self.RectBeam.set(self.kwargs)
+        self.RectBeam.set(default= False, **self.kwargs)
         hmgIA = self.RectBeam.Ix_top()
         hmgIAs1 = self.kwargs['As1'] * (self.RectBeam.ns - 1) * pow(self.kwargs['ds1'], 2)
         hmgIAs2 = self.kwargs['As2'] * (self.RectBeam.ns - 1) * pow(self.kwargs['ds2'], 2)
@@ -106,59 +96,53 @@ class TestRectSect(unittest.TestCase):
         self.assertEqual(self.RectBeam.hmgSect['I'], hmgI)
 
     def test_k_return_correct_value(self):
-        self.RectBeam.set({'h':800, 'b':300, 'As1':900, 'As2':1800, 'Ap':1000, 'ds1':60, 'ds2':740, 'N':1350,
-                           'M':710, 'Ep':200E3, 'Es':200E3})
+        num = self.RectBeam.hmgSect['Q'] * self.N - self.M * self.RectBeam.hmgSect['A']
+        dem = self.RectBeam.concrete.E_cm * (self.RectBeam.hmgSect['Q'] ** 2 - self.RectBeam.hmgSect['A'] * self.RectBeam.hmgSect['I'])
 
-        num = self.RectBeam.hmgSect['Q'] * self.RectBeam.N - self.RectBeam.M * self.RectBeam.hmgSect['A']
-        dem = self.RectBeam.Ecm * (self.RectBeam.hmgSect['Q'] ** 2 - self.RectBeam.hmgSect['A'] * self.RectBeam.hmgSect['I'])
-
-        self.assertEqual(self.RectBeam.crv, num / dem)
-        self.RectBeam.set(self.kwargs)
+        self.assertEqual(self.RectBeam.k(self.N, self.M), num / dem)
 
     def test_eps_0_returns_correct_value(self):
-        self.RectBeam.set(self.kwargs)
-        num = self.RectBeam.hmgSect['Q'] * self.RectBeam.M - self.RectBeam.hmgSect['I'] * self.RectBeam.N
-        dem = self.RectBeam.Ecm * (self.RectBeam.hmgSect['Q'] ** 2 - self.RectBeam.hmgSect['A'] * self.RectBeam.hmgSect['I'])
+        self.RectBeam.set(default= False, **self.kwargs)
+        num = self.RectBeam.hmgSect['Q'] * self.M - self.RectBeam.hmgSect['I'] * self.N
+        dem = self.RectBeam.concrete.E_cm * (self.RectBeam.hmgSect['Q'] ** 2 - self.RectBeam.hmgSect['A'] * self.RectBeam.hmgSect['I'])
         eps = num / dem
-        #print(eps)
-        self.assertEqual(self.RectBeam.eps_0(), eps)
+
+        self.assertEqual(self.RectBeam.eps_0(self.N, self.M), eps)
 
     def test_eps_y_returns_correct(self):
-        self.RectBeam.set(self.kwargs)
-        eps = self.RectBeam.epsilon_c0 + self.RectBeam.crv * self.RectBeam.h
-        #print(eps)
-        self.assertEqual(self.RectBeam.eps(self.RectBeam.h), eps)
+        self.RectBeam.set(default= False, **self.kwargs)
+        eps = self.RectBeam.eps_0(self.N, self.M) + self.RectBeam.k(self.N, self.M) * self.RectBeam.h
+
+        self.assertEqual(self.RectBeam.eps(self.N, self.M, self.RectBeam.h), eps)
 
     def test_stress_returns_correct_value(self):
-        self.RectBeam.set(self.kwargs)
-        stress_o = self.RectBeam.eps(0) * self.RectBeam.Ecm
-        stress_h = self.RectBeam.eps(self.RectBeam.h) * self.RectBeam.Ecm
-        #print(stress_o)
-        #print(stress_h)
+        self.RectBeam.set(default= False, **self.kwargs)
+        stress_o = self.RectBeam.eps(self.N, self.M, 0) * self.RectBeam.concrete.E_cm
+        stress_h = self.RectBeam.eps(self.N, self.M, self.RectBeam.h) * self.RectBeam.concrete.E_cm
 
-        self.assertEqual(self.RectBeam.stress(0), stress_o)
-        self.assertEqual(self.RectBeam.stress(self.RectBeam.h), stress_h)
+        self.assertEqual(self.RectBeam.stress(self.N, self.M, 0), stress_o)
+        self.assertEqual(self.RectBeam.stress(self.N, self.M, self.RectBeam.h), stress_h)
 
     def test_mangel_stress_limit_returns_correctly(self):
         # M0 and M1 are the moments from external loads
         M0 = 100E6
         M1 = 500E6
         # Mi Mf must be the whole moment applied to the section
-        Mp = self.RectBeam.dp * self.RectBeam.N
+        Mp = self.RectBeam.dp * self.N
         Mi = M0 + Mp
         Mf = M1 + Mp
 
-        self.RectBeam.set(self.kwargs)
-        self.assertFalse(self.RectBeam.magnel_stress_limit(Mi, Mf))
+        self.RectBeam.set(default= False, **self.kwargs)
+        self.assertFalse(self.RectBeam.magnel_stress_limit(self.N, Mi, Mf))
 
-        self.RectBeam.set({'dp': 700, 'N': -1000, })
+        self.RectBeam.set(default=False, **{'dp': 700, 'N': -1000, })
         #update moments
-        Mp = self.RectBeam.dp * self.RectBeam.N
+        Mp = self.RectBeam.dp * self.N
         Mi = M0 + Mp
         Mf = M1 + Mp
-        self.assertFalse(self.RectBeam.magnel_stress_limit(Mi, Mf))
+        self.assertFalse(self.RectBeam.magnel_stress_limit(self.N, Mi, Mf))
 
-        self.RectBeam.set({
+        self.RectBeam.set(**{
         'fck' : 35,
         'fyk' : 400,
         'fpk' : 1750,
@@ -176,33 +160,21 @@ class TestRectSect(unittest.TestCase):
         'h' : 1000,
         'ds1' : 60,
         'ds2' : 740,
-        'dp' : 600,
-        'N' : -1350E3,
-        'M' : -310E6,
+        'dp' : 600
     })
         #print(type(self.RectBeam))
-        print(self.RectBeam.stress(0))
-        print(self.RectBeam.stress(self.RectBeam.h))
+        print(self.RectBeam.stress(self.N, self.M, 0))
+        print(self.RectBeam.stress(self.N, self.M, self.RectBeam.h))
         #update moments
-        Mp = self.RectBeam.dp * self.RectBeam.N
+        Mp = self.RectBeam.dp * self.N
         Mi = M0 + Mp
         Mf = M1 + Mp
-        self.assertTrue(self.RectBeam.magnel_stress_limit(Mi, Mf))
+        self.assertTrue(self.RectBeam.magnel_stress_limit(self.N, Mi, Mf))
 
 
 class TestTsect(unittest.TestCase):
 
     kwargs = {
-        'fck' : 20,
-        'fyk' : 400,
-        'fpk' : 1750,
-        'Es' : 200E3,
-        'Ep' : 195E3,
-        's' : 0.25,
-        'prestress_time' : 7,
-        'gc' : 1.5,
-        'gs' : 1.15,
-        'gp' : 1.15,
         'As1' : 900,
         'As2' : 1800,
         'Ap' : 1000,
@@ -211,12 +183,12 @@ class TestTsect(unittest.TestCase):
         'ds1' : 60,
         'ds2' : 740,
         'dp' : 600,
-        'N' : -1350E3,
-        'M' : -710E6,
         't1': 80,
         't2': 80,
         't': 80
     }
+    N = -1350E3
+    M = -710E6
     Tsect = TConcSect(**kwargs)
     Tsect_defaut = TConcSect()
 
@@ -230,8 +202,7 @@ class TestTsect(unittest.TestCase):
         # save self.kwargs config
         current_attrs = self.Tsect.__dict__
         # set Tsect to default
-        self.Tsect.set(None)
-        self.maxDiff = None
+        self.Tsect.set(default=True)
         # check Tsect attributes equal default attributes
         self.assertEqual(self.Tsect.__dict__, self.Tsect_defaut.__dict__)
 
