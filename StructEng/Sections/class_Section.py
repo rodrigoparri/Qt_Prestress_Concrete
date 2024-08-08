@@ -47,11 +47,6 @@ class Section(ABC):
         pass
 
     @abstractmethod
-    def alpha_y(self, y):
-        """Integral of the function A(y) which is implemented as A_y() in this code"""
-        pass
-
-    @abstractmethod
     def ycentroid_y(self, y):
         """ y coordinate of the centroid of a portion of the section defined between the top and an arbitrary
         horizontal axis at distance y from the top
