@@ -125,11 +125,11 @@ class TestConcrete(unittest.TestCase):
 
     def test_alpha_returns_correctly(self):
         self.concrete.set(cem_type='S')
-        self.assertEqual(self.concrete.alpha_, -1)
+        self.assertEqual(self.concrete.alpha(), -1)
         self.concrete.set(cem_type='N')
-        self.assertEqual(self.concrete.alpha_, 0)
+        self.assertEqual(self.concrete.alpha(), 0)
         self.concrete.set(cem_type='R')
-        self.assertEqual(self.concrete.alpha_, 1)
+        self.assertEqual(self.concrete.alpha(), 1)
 
     def test_alpha_n(self):
         n = (0.7, 0.2, 0.5)
@@ -140,19 +140,23 @@ class TestConcrete(unittest.TestCase):
         num = 1 - self.concrete.HR * 0.01
         dem = 0.1 * pow(self.concrete.h0, 1/3)
         self.concrete.set(fck=25)
-        self.assertEqual(self.concrete.phi_HR, 1 + num / dem)
+        self.assertEqual(self.concrete.phiHR(), 1 + num / dem)
 
-        self.concrete.set(fck=30)
+        self.concrete.set(fck=35)
         num = 1 - self.concrete.HR * 0.01
         dem = 0.1 * pow(self.concrete.h0, 1/3)
-        self.assertEqual(self.concrete.phi_HR, (1 + num / dem * self.concrete.alpha_1) * self.concrete.alpha_2)
+        self.assertEqual(self.concrete.phiHR(),
+            (1 + num / dem * self.concrete.alpha_n(0.7)) * self.concrete.alpha_n(0.2))
         self.concrete.set(**self.kwattrs)
 
     def test_Bfcm_returns_correctly(self):
-        self.assertEqual(self.concrete.B_fcm, 16.8 / sqrt(self.concrete.f_cm))
+        self.assertEqual(self.concrete.Bfcm(), 16.8 / sqrt(self.concrete.f_cm))
 
     def test_Bt0_returns_correctly(self):
-        self.assertEqual(self.concrete.B_t0, 1 / (0.1 + pow(self.concrete.t_0_cem, 0.2)))
+        self.concrete.set(temperature_dependent=False)
+        self.assertEqual(self.concrete.Bt0(self.concrete.t_0_cem), 1 / (0.1 + pow(self.concrete.t_0_cem, 0.2)))
+        self.concrete.set(temperature_dependent=True)
+        self.assertEqual(self.concrete.Bt0(self.concrete.t_0_cem), 1 / (0.1 + pow(self.concrete.t_0_cem, 0.2)))
 
     def test_B_H_returns_correctly(self):
         self.concrete.set(fck=25)
@@ -164,9 +168,10 @@ class TestConcrete(unittest.TestCase):
 
         self.concrete.set(fck=30)
         a = 1.5 * (1 + pow(0.012 * self.concrete.HR, 18) * self.concrete.h0)
-        Bh = a + 250 * self.concrete.alpha_3
-        if Bh >= 1500 * self.concrete.alpha_3:
-            Bh = 1500 * self.concrete.alpha_3
+        alpha_3 = self.concrete.alpha_n(0.5)
+        Bh = a + 250 * alpha_3
+        if Bh >= 1500 * alpha_3:
+            Bh = 1500 * alpha_3
         self.assertEqual(self.concrete.B_H(), Bh)
 
         self.concrete.set(**self.kwattrs)
@@ -175,7 +180,7 @@ class TestConcrete(unittest.TestCase):
         # set concrete to non temperature dependent
         self.concrete.set(temperature_dependent=False)
         # calculate non temperature dependent t0
-        t0 = self.concrete.prestress_time * pow(9/(2+self.concrete.prestress_time ** 1.2)+1, self.concrete.alpha_)
+        t0 = self.concrete.prestress_time * pow(9/(2+self.concrete.prestress_time ** 1.2)+1, self.concrete.alpha())
         if 0 < t0 <= 0.5:
             self.assertEqual(self.concrete.t_0T, 0)
             self.assertEqual(self.concrete.t_0_cem, 0.5)
@@ -188,7 +193,7 @@ class TestConcrete(unittest.TestCase):
         # set concrete to temperature dependent
         self.concrete.set(temperature_dependent=True)
         t_0T = np.sum(np.exp(-4000/(273+np.array(self.concrete.T_data[:self.concrete.prestress_time]))+13.65))
-        t0 = t_0T * pow(9 / (2 + t_0T ** 1.2) + 1, self.concrete.alpha_)
+        t0 = t_0T * pow(9 / (2 + t_0T ** 1.2) + 1, self.concrete.alpha())
         if 0 < t0 <= 0.5:
             self.assertEqual(self.concrete.t_0T, t_0T)
             self.assertEqual(self.concrete.t_0_cem, 0.5)
@@ -204,39 +209,43 @@ class TestConcrete(unittest.TestCase):
         dem = self.concrete.B_H() + num
 
         self.assertGreater(num, 0)
-        self.assertEqual(self.concrete.B_ct, pow(num / dem, 0.3))
+        self.assertEqual(self.concrete.Bc_t(self.concrete.delayed_effects_time, self.concrete.t_0_cem),
+            pow(num / dem, 0.3))
 
         self.concrete.set(temperature_dependent=False)
         num = self.concrete.delayed_effects_time - self.concrete.t_0_cem
         dem = self.concrete.B_H() + num
 
-        self.assertEqual(self.concrete.B_ct, pow(num / dem, 0.3))
+        self.assertEqual(self.concrete.Bc_t(self.concrete.delayed_effects_time, self.concrete.t_0_cem),
+            pow(num / dem, 0.3))
 
     def test_phi0_returns_correctly(self):
         self.concrete.set(temperature_dependent=True)
-        phi0 = self.concrete.phi_HR * self.concrete.B_fcm * self.concrete.B_t0
-        self.assertEqual(self.concrete.phi_0, phi0)
+        phi0 = self.concrete.phiHR() * self.concrete.Bfcm() * self.concrete.Bt0(self.concrete.t_0_cem)
+        self.assertEqual(self.concrete.phi0(self.concrete.t_0_cem), phi0)
 
         self.concrete.set(temperature_dependent=False)
-        phi0 = self.concrete.phi_HR * self.concrete.B_fcm * self.concrete.B_t0
-        self.assertEqual(self.concrete.phi_0, phi0)
+        phi0 = self.concrete.phiHR() * self.concrete.Bfcm() * self.concrete.Bt0(self.concrete.t_0_cem)
+        self.assertEqual(self.concrete.phi0(self.concrete.t_0_cem), phi0)
 
     def test_phi_time_returns_correctly(self):
         self.concrete.set(temperature_dependent=True)
-        phi_t = self.concrete.phi_0 * self.concrete.B_ct
-        self.assertEqual(self.concrete.phi_t, phi_t)
+        phi_t = self.concrete.phi0(self.concrete.t_0_cem) * self.concrete.Bc_t(self.concrete.delayed_effects_time,
+            self.concrete.t_0_cem)
+        self.assertEqual(self.concrete.phi_time(self.concrete.delayed_effects_time, self.concrete.t_0_cem), phi_t)
 
         self.concrete.set(temperature_dependent=False)
-        phi_t = self.concrete.phi_0 * self.concrete.B_ct
-        self.assertEqual(self.concrete.phi_t, phi_t)
+        phi_t = self.concrete.phi0(self.concrete.t_0_cem) * self.concrete.Bc_t(self.concrete.delayed_effects_time,
+            self.concrete.t_0_cem)
+        self.assertEqual(self.concrete.phi_time(self.concrete.delayed_effects_time, self.concrete.t_0_cem), phi_t)
 
     def test_phi_non_lin_returns_correctly(self):
         self.concrete.set(sigma_c=30, temperature_dependent=True)
-        phi_nl = self.concrete.phi_t * exp(1.5 * (self.concrete.sigma_c / self.concrete.f_ckt - 0.45))
-        self.assertEqual(self.concrete.phi_nl, phi_nl)
+        phi_nl = self.concrete.phi_time(self.concrete.delayed_effects_time, self.concrete.t_0_cem) * exp(1.5 * (self.concrete.sigma_c / self.concrete.f_ckt - 0.45))
+        self.assertEqual(self.concrete.phi_non_lin(self.concrete.delayed_effects_time, self.concrete.t_0_cem), phi_nl)
         self.concrete.set(sigma_c=0)
 
         self.concrete.set(sigma_c=35, temperature_dependent=False)
-        phi_nl = self.concrete.phi_t * exp(1.5 * (self.concrete.sigma_c / self.concrete.f_ckt - 0.45))
-        self.assertEqual(self.concrete.phi_nl, phi_nl)
+        phi_nl = self.concrete.phi_time(self.concrete.delayed_effects_time, self.concrete.t_0_cem) * exp(1.5 * (self.concrete.sigma_c / self.concrete.f_ckt - 0.45))
+        self.assertEqual(self.concrete.phi_non_lin(self.concrete.delayed_effects_time, self.concrete.t_0_cem), phi_nl)
         self.concrete.set(sigma_c=0)
