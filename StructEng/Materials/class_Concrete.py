@@ -53,17 +53,17 @@ class Concrete:
 
         self.__init_t_0()  # initialize prestress time adjusted to cement type
 
-        # terms for basic creep coefficient
-        self.phi_HR = self.phiHR()
-        self.B_fcm = self.Bfcm()
-        self.B_t0 = self.Bt0(self.t_0_cem)
-        self.B_ct = self.Bc_t(self.delayed_effects_time, self.t_0_cem)
-        # basic creep coefficient
-        self.phi_0 = self.phi0(self.t_0_cem)
-        # linear creep coefficient
-        self.phi_t = self.phi_time(self.delayed_effects_time, self.t_0_cem)
-        # non-linear creep coefficient
-        self.phi_nl = self.phi_non_lin(self.delayed_effects_time, self.t_0_cem)
+        ## terms for basic creep coefficient
+        #self.phi_HR = self.phiHR()
+        #self.B_fcm = self.Bfcm()
+        #self.B_t0 = self.Bt0(self.t_0_cem)
+        #self.B_ct = self.Bc_t(self.delayed_effects_time, self.t_0_cem)
+        ## basic creep coefficient
+        #self.phi_0 = self.phi0(self.t_0_cem)
+        ## linear creep coefficient
+        #self.phi_t = self.phi_time(self.delayed_effects_time, self.t_0_cem)
+        ## non-linear creep coefficient
+        #self.phi_nl = self.phi_non_lin(self.delayed_effects_time, self.t_0_cem)
 
     def __str__(self):
         string = f"""
@@ -248,7 +248,7 @@ class Concrete:
         if 0 < self.f_cm <= 35:
             return 1 + num / dem
         elif self.f_cm > 35:
-            return (1 + num / dem * self.alpha_1) * self.alpha_2
+            return (1 + num / dem * self.alpha_n(0.7)) * self.alpha_n(0.2)
         else:
             raise ValueError
 
@@ -274,8 +274,8 @@ class Concrete:
             else:
                 return 1500
         elif self.f_cm > 35:
-            Bh = a + 250 * self.alpha_3
-            a = 1500 * self.alpha_3
+            Bh = a + 250 * self.alpha_n(0.5)
+            a = 1500 * self.alpha_n(0.5)
             if Bh <= a:
                 return Bh
             else:
@@ -284,15 +284,18 @@ class Concrete:
     def Bc_t(self, t: int, t0: float) -> float:
         """coefficient describing creep development over time after loading
         :param t: concrete's age in days when creep is being calculated
-        :param t0: concrete's age in days when load is applied"""
+        :param t0: concrete's age in days when load is applied
+        """
         num = t - t0
         dem = self.B_H() + num
         return pow(num / dem, 0.3)
 
     def t0_cem(self, t0T: float) -> float:
-        """the cement type effects over the creep coefficient can be taken into account modifying the loading age
+        """
+        the cement type effects over the creep coefficient can be taken into account modifying the loading age
         t0 according to the next expression
-        :param t0T: concrete age in days can be temperature adjusted or not"""
+        :param t0T: concrete age in days can be temperature adjusted or not
+        """
         to = t0T * pow(9 / (2 + pow(t0T, 1.2)) + 1, self.alpha_)
         if to >= 0.5:
             return to
@@ -301,7 +304,7 @@ class Concrete:
         else:
             raise ValueError
 
-    def tT(self, T_data: tuple) -> float:  # open to change until data format is known
+    def tT(self, T_data: tuple) -> float:
         """temperature-adjusted loading age that replaces t in the corresponding equations. Data of time and
         temperature at each time T(t) must be provided. To calculate t_0T you should sum from the first data point
         (at concrete pouring) to the point at prestress application.
@@ -313,7 +316,8 @@ class Concrete:
 
     def phi0(self, t0: float) -> float:
         """basic creep coefficient according to spanish structural code
-        :param t0: concrete's age in days when load is applied"""
+        :param t0: concrete's age in days when load is applied
+        """
         return self.phi_HR * self.B_fcm * self.Bt0(t0)
 
     def phi_time(self, t: int, t0: float) -> float:
